@@ -13,6 +13,11 @@ export interface FlyOutField {
     as?: any;
 }
 
+export interface FlyOutLookupField extends FlyOutField {
+    fetchXml: string;
+    displayField: string;
+}
+
 export interface FlyOutForm {
     title: string;
     fields: {[key: string]: FlyOutField };

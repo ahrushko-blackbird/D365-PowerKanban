@@ -27,7 +27,15 @@ window.boardViewExtender.onStateTransition = function(context) {
                 rows: 5,
                 required: true,
                 subtext: "Please describe how the case was solved"
-            }
+            }/*,
+            "contact": {
+                label: "Contact",
+                type: "lookup",
+                required: true,
+                subtext: "This is only for showcasing that lookups are supported as well",
+                fetchXml: '<fetch><entity name="contact"><attribute name="fullname" /><order attribute="fullname" /></entity></fetch>',
+                displayField: "fullname"
+            }*/
         }
     })
     .then(formResult => {
