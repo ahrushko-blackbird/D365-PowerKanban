@@ -135,12 +135,12 @@ export const Board = () => {
       configDispatch({ type: "setStateMetadata", payload: stateMetadata });
       actionDispatch({ type: "setProgressText", payload: "Fetching views" });
 
-      const { value: views}: { value: Array<SavedQuery> } = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${config.primaryEntity.logicalName}' and querytype eq 0`});
+      const { value: views}: { value: Array<SavedQuery> } = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${config.primaryEntity.logicalName}' and querytype eq 0 and statecode eq 0`});
       setViews(views);
 
       let defaultSecondaryView;
       if (config.secondaryEntity) {
-        const { value: secondaryViews }: { value: Array<SavedQuery>} = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${config.secondaryEntity.logicalName}' and querytype eq 0`});
+        const { value: secondaryViews }: { value: Array<SavedQuery>} = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${config.secondaryEntity.logicalName}' and querytype eq 0 and statecode eq 0`});
         setSecondaryViews(secondaryViews);
 
         defaultSecondaryView = config.secondaryEntity.defaultView
