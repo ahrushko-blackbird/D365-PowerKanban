@@ -33,7 +33,8 @@ window.boardViewExtender.onStateTransition = function(context) {
                 type: "lookup",
                 required: true,
                 subtext: "This is only for showcasing that lookups are supported as well",
-                fetchXml: '<fetch><entity name="contact"><attribute name="fullname" /><order attribute="fullname" /></entity></fetch>',
+                fetchXml: '<fetch><entity name="contact"><attribute name="fullname" /><attribute name="emailaddress1" /><attribute name="gendercode" /> <attribute name="parentcustomerid" /><order attribute="fullname" /></entity></fetch>',
+                secondaryFields: ["emailaddress1", "gendercode", "parentcustomerid"],
                 displayField: "fullname"
             }*/
         }

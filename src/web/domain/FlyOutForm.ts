@@ -16,6 +16,7 @@ export interface FlyOutField {
 export interface FlyOutLookupField extends FlyOutField {
     fetchXml: string;
     displayField: string;
+    secondaryFields: Array<string>;
 }
 
 export interface FlyOutForm {
