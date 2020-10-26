@@ -18,6 +18,7 @@ export interface BoardEntity {
     customButtons: Array<CustomButton>;
     fitLanesToScreenWidth: boolean;
     hideCountOnLane: boolean;
+    defaultOpenHandler: "inline" | "sidebyside" | "modal" | "newwindow";
 }
 
 export interface SecondaryEntity extends BoardEntity {

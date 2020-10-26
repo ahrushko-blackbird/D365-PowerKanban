@@ -150,8 +150,25 @@ const TileRender = (props: TileProps) => {
         Xrm.Navigation.openForm({ entityName: props.metadata.LogicalName, entityId: props.data[props.metadata?.PrimaryIdAttribute], openInNewWindow: false });
     };
 
+    const quickOpen = () => {
+        const handler = (props.config.defaultOpenHandler || "").toLowerCase();
+
+        switch(handler) {
+            case "modal":
+                return openInModal();
+            case "sidebyside":
+                return setSelectedRecord();
+            case "newwindow":
+                return openInNewTab();
+            default:
+                return openInline();
+        }
+    };
+
     const openInModal = (ev?: React.MouseEvent<HTMLElement, MouseEvent> | React.KeyboardEvent<HTMLElement>) => {
-        ev.stopPropagation();
+        if (ev) {
+            ev.stopPropagation();
+        }
 
         const input : Xrm.Navigation.PageInputEntityRecord = {
 			pageType: "entityrecord",
@@ -352,7 +369,7 @@ const TileRender = (props: TileProps) => {
                                     split
                                     aria-roledescription="split button"
                                     menuProps={({ items: menuProps.items.filter(m => !!m) })}
-                                    onClick={openInline}
+                                    onClick={quickOpen}
                                 />
                             </div>
                         </div>
