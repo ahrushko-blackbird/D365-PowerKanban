@@ -16,7 +16,7 @@ interface FieldRowProps {
 
 const FieldRowRender = (props: FieldRowProps) => {
     const openRecord = (event: any) => {
-        const [entity, id] = event.target.id.split(".");
+        const [entity, id] = event.currentTarget.id.split(".");
         Xrm.Navigation.openForm({ entityName: entity, entityId: id, openInNewWindow: true });
     };
 
