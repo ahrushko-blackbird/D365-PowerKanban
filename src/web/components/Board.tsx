@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as WebApiClient from "xrm-webapi-client";
-import { BoardViewConfig } from "../domain/BoardViewConfig";
+import { BoardViewConfig, BoardEntity } from "../domain/BoardViewConfig";
 import { useAppContext } from "../domain/AppState";
 import { formatGuid } from "../domain/GuidFormatter";
 import { Lane } from "./Lane";
@@ -11,13 +11,14 @@ import { fetchData, refresh, fetchSubscriptions, fetchNotifications } from "../d
 import { Tile } from "./Tile";
 import { DndContainer } from "./DndContainer";
 import { loadExternalScript } from "../domain/LoadExternalScript";
-import { useConfigContext } from "../domain/ConfigState";
+import { useConfigContext, ConfigStateProps } from "../domain/ConfigState";
 import { useActionContext, DisplayType } from "../domain/ActionState";
 import { SearchBox } from "@fluentui/react/lib/SearchBox";
 import { Spinner } from "@fluentui/react/lib/Spinner";
-import { PrimaryButton, CommandBarButton, IButtonStyles, IconButton } from "@fluentui/react/lib/Button";
+import { PrimaryButton, CommandBarButton, IButtonStyles, IconButton, DefaultButton } from "@fluentui/react/lib/Button";
 import { Dropdown, IDropdownOption, IDropdownStyles } from "@fluentui/react/lib/Dropdown";
 import { OverflowSet, IOverflowSetItemProps } from "@fluentui/react/lib/OverflowSet";
+import { IContextualMenuProps, IContextualMenuItem } from "@fluentui/react/lib/ContextualMenu";
 import { ICardStyles } from '@uifabric/react-cards';
 import { BoardLane } from "../domain/BoardLane";
 
@@ -73,6 +74,7 @@ export const Board = () => {
   const [ cardForms, setCardForms ] = React.useState<Array<CardForm>>([]);
   const [ secondaryCardForms, setSecondaryCardForms ] = React.useState<Array<CardForm>>([]);
   const [ stateFilters, setStateFilters ] = React.useState<Array<Option>>([]);
+  const [ secondaryStateFilters, setSecondaryStateFilters ] = React.useState<Array<Option>>([]);
   const [ displayState, setDisplayState ] = React.useState<DisplayState>("simple" as any);
   const [ appliedSearchText, setAppliedSearch ] = React.useState(undefined);
   const [ showNotificationRecordsOnly, setShowNotificationRecordsOnly ] = React.useState(false);
@@ -274,15 +276,23 @@ export const Board = () => {
     refresh(appDispatch, appState, configState, actionDispatch, actionState, undefined, undefined, undefined, form);
   };
 
-  const setStateFilter = (event: React.FormEvent<HTMLDivElement>, item: IDropdownOption) => {
+  const setFilter = (item: IContextualMenuItem, attr: Attribute, setFilters: (value: React.SetStateAction<Array<Option>>) => void, filters: Array<Option>) => {
     const stateValue = item.key;
 
-    if (stateFilters.some(f => f.Value == stateValue)) {
-      setStateFilters(stateFilters.filter(f => f.Value != stateValue));
+    if (filters.some(f => f.Value.toString() == stateValue)) {
+      setFilters(filters.filter(f => f.Value.toString() != stateValue));
     }
     else {
-      setStateFilters([...stateFilters, configState.stateMetadata.OptionSet.Options.find(o => o.Value == stateValue)]);
+      setFilters([...filters, attr.OptionSet.Options.find(o => o.Value.toString() == stateValue)]);
     }
+  };
+
+  const setStateFilter = (item: IContextualMenuItem, attr: Attribute) => {
+    setFilter(item, attr, setStateFilters, stateFilters);
+  };
+
+  const setSecondaryStateFilter = (item: IContextualMenuItem, attr: Attribute) => {
+    setFilter(item, attr, setSecondaryStateFilters, secondaryStateFilters);
   };
 
   const setSimpleDisplay = () => {
@@ -333,14 +343,27 @@ export const Board = () => {
     ? d 
     : { ...d, data: d.data.filter(data => appState.notifications && appState.notifications[data[configState.metadata.PrimaryIdAttribute]] && appState.notifications[data[configState.metadata.PrimaryIdAttribute]].length)};
   
+  const filterLanes = (d: BoardLane, e: BoardEntity, filters: Array<Option>) => {
+    const isStateVisible = !filters.length || filters.some(f => f.Value === d.option.Value);
+    const isVisibleLane = !e.visibleLanes || e.visibleLanes.some(l => l === d.option.Value);
+    const isHiddenLane = e.hiddenLanes?.some(l => l === d.option.Value);
+
+    return isStateVisible && isVisibleLane && !isHiddenLane;
+  };
+
+  const filterPrimaryLanes = (d: BoardLane) => filterLanes(d, configState?.config.primaryEntity, stateFilters);
+  const filterSecondaryLanes = (d: BoardLane) => filterLanes(d, configState?.config.secondaryEntity, secondaryStateFilters);
+
   const advancedData = React.useMemo(() => {
     return displayState === "advanced" && appState.boardData &&
-    appState.boardData.filter(d => !stateFilters.length || stateFilters.some(f => f.Value === d.option.State))
+    appState.boardData.filter(filterPrimaryLanes)
     .map(filterForSearchText)
     .map(filterForNotifications)
     .reduce((all, curr) => all.concat(curr.data.filter(d => appState.secondaryData.some(t => t.data.some(tt => tt[`_${configState.config.secondaryEntity.parentLookup}_value`] === d[configState.metadata.PrimaryIdAttribute])))
     .map(d => {
-      const secondaryData = appState.secondaryData.map(s => ({ ...s, data: s.data.filter(sd => sd[`_${configState.config.secondaryEntity.parentLookup}_value`] === d[configState.metadata.PrimaryIdAttribute])}));
+      const secondaryData = appState.secondaryData
+        .filter(filterSecondaryLanes)
+        .map(s => ({ ...s, data: s.data.filter(sd => sd[`_${configState.config.secondaryEntity.parentLookup}_value`] === d[configState.metadata.PrimaryIdAttribute])}));
       
       const secondarySubscriptions = Object.keys(appState.subscriptions)
       .filter(k => secondaryData.some(d => d.data.some(r => r[configState.secondaryMetadata[configState.config.secondaryEntity.logicalName].PrimaryIdAttribute] === k)))
@@ -370,11 +393,11 @@ export const Board = () => {
         secondaryData={secondaryData} />
       );
     })), []);
-  }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.secondaryData, stateFilters, appliedSearchText, appState.notifications, appState.subscriptions, actionState.selectedSecondaryForm, configState.configId]);
+  }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.secondaryData, stateFilters, secondaryStateFilters, appliedSearchText, appState.notifications, appState.subscriptions, actionState.selectedSecondaryForm, configState.configId]);
 
   const simpleData = React.useMemo(() => {
     return appState.boardData && appState.boardData
-    .filter(d => !stateFilters.length || stateFilters.some(f => f.Value === d.option.State))
+    .filter(filterPrimaryLanes)
     .map(filterForSearchText)
     .map(filterForNotifications)
     .map(d => <Lane
@@ -421,7 +444,7 @@ export const Board = () => {
     root: {
       margin: "5px",
     },
-    dropdown: { width: 250 }
+    dropdown: { width: 200 }
   };
 
   const navItemStyles: IButtonStyles = {
@@ -433,6 +456,36 @@ export const Board = () => {
   const toggleShowNotificationRecordsOnly = () => {
     setShowNotificationRecordsOnly(!showNotificationRecordsOnly);
   };
+
+  const renderStateFilter = (attr: Attribute, filters: Array<Option>, e: BoardEntity, onClick: (item: IContextualMenuItem, attr: Attribute) => void): IContextualMenuProps => {
+    if (!attr || !e) {
+      return undefined;
+    }
+
+    const options = attr.OptionSet.Options
+      .filter(d => {
+        if (!e.hiddenLanes && !e.visibleLanes) {
+          return true;
+        }
+        
+        const isVisibleLane = !e.visibleLanes || e.visibleLanes.some(l => l === d.Value);
+        const isHiddenLane = e.hiddenLanes?.some(l => l === d.Value);
+
+        return isVisibleLane && !isHiddenLane;
+      });
+
+    return {
+      items: options.map(o => ({
+        key: o.Value.toString(),
+        canCheck: true,
+        isChecked: filters.some(f => f.Value === o.Value),
+        text: o.Label.UserLocalizedLabel.Label,
+        onClick: (e, o) => onClick(o, attr) }))
+    };
+  };
+
+  let primaryStateFilter = renderStateFilter(configState?.separatorMetadata, stateFilters, configState?.config?.primaryEntity, setStateFilter);
+  let secondaryStateFilter = renderStateFilter(configState?.secondarySeparatorMetadata, secondaryStateFilters, configState?.config?.secondaryEntity, setSecondaryStateFilter);
 
   const navItems: Array<IOverflowSetItemProps> = [
     {
@@ -466,7 +519,7 @@ export const Board = () => {
     : {
       key: 'displaySelector',
       onRender: () => <Dropdown
-        styles={dropdownStyles}
+        styles={navItemStyles}
         id="displaySelector"
         onChange={setDisplayType}
         selectedKey={displayState}
@@ -502,17 +555,15 @@ export const Board = () => {
       }
     : null
     ),
-    (configState.config?.primaryEntity.swimLaneSource !== "statuscode"
+    {
+      key: 'primaryStatusFilter',
+      onRender: () =>  <DefaultButton styles={navItemStyles} id="stateFilterSelector" text="Primary Lane Filter" menuProps={primaryStateFilter} />
+    },
+    (displayState !== "advanced"
     ? null
     : {
-      key: 'statusFilter',
-      onRender: () => <Dropdown
-        styles={navItemStyles}
-        id="stateFilterSelector"
-        onChange={setStateFilter}
-        placeholder="All states"
-        options={ configState.stateMetadata?.OptionSet.Options?.map(o => ({ key: o.Value, text: o.Label.UserLocalizedLabel.Label })) }
-      />
+        key: 'secondaryStatusFilter',
+        onRender: () =>  <DefaultButton styles={navItemStyles} id="secondaryStateFilterSelector" text="Secondary Lane Filter" menuProps={secondaryStateFilter} />
       }
     ),
     ( (configState.config?.primaryEntity.subscriptionLookup && configState.config?.primaryEntity.notificationLookup) || (configState.config?.secondaryEntity && configState.config?.secondaryEntity.subscriptionLookup && configState.config?.secondaryEntity.notificationLookup)

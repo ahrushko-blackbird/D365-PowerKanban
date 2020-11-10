@@ -3,6 +3,7 @@ import { AppStateProvider } from "../domain/AppState";
 import { SplitView } from "./SplitView";
 import { ActionStateProvider } from "../domain/ActionState";
 import { ConfigStateProvider } from "../domain/ConfigState";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 export interface AppProps
 {
@@ -15,12 +16,16 @@ export interface AppProps
 
 export const App: React.FC<AppProps> = (props) => {
   return (
-    <AppStateProvider primaryDataIds={props.primaryDataIds} primaryEntityId={props.primaryEntityId}>
-      <ActionStateProvider>
-        <ConfigStateProvider appId={props.appId} configId={props.configId} primaryEntityLogicalName={props.primaryEntityLogicalName}>
-          <SplitView primaryDataIds={props.primaryDataIds} />
-        </ConfigStateProvider>
-      </ActionStateProvider>
-    </AppStateProvider>
+    <ErrorBoundary>
+      <AppStateProvider primaryDataIds={props.primaryDataIds} primaryEntityId={props.primaryEntityId}>
+        <ActionStateProvider>
+          <ConfigStateProvider appId={props.appId} configId={props.configId} primaryEntityLogicalName={props.primaryEntityLogicalName}>
+            <ErrorBoundary>
+              <SplitView primaryDataIds={props.primaryDataIds} />
+            </ErrorBoundary>
+          </ConfigStateProvider>
+        </ActionStateProvider>
+      </AppStateProvider>
+    </ErrorBoundary>
   );
 };

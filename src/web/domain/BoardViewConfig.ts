@@ -10,6 +10,8 @@ export interface CustomButton {
 export interface BoardEntity {
     logicalName: string;
     swimLaneSource: string;
+    hiddenLanes: Array<number>;
+    visibleLanes: Array<number>;
     transitionCallback: string;
     notificationLookup: string;
     subscriptionLookup: string;
