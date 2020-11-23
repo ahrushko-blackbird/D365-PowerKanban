@@ -45,6 +45,7 @@ const TileRender = (props: TileProps) => {
     const appDispatch = useAppDispatch();
     const configState = useConfigState();
     const actionDispatch = useActionDispatch();
+    const [overriddenStyle, setOverriddenStyle] = React.useState({} as ICardStyles);
 
     const secondaryConfig = configState.config.secondaryEntity;
     const secondaryMetadata = configState.secondaryMetadata[secondaryConfig ? secondaryConfig.logicalName : ""];
@@ -68,9 +69,9 @@ const TileRender = (props: TileProps) => {
         WebApiClient: WebApiClient
     };
 
-    const accessFunc = (identifier: string) => {
+    const accessFunc = (identifier: string): Function => {
         const path = identifier.split(".");
-        return path.reduce((all, cur) => !all ? undefined : (all as any)[cur], window);
+        return path.reduce((all, cur) => !all ? undefined : (all as any)[cur], window) as any;
     };
 
     const [{ isDragging }, drag] = useDrag<{ id: string; sourceLane: Option, type: string } | undefined, undefined, {isDragging: boolean}>({
@@ -204,13 +205,15 @@ const TileRender = (props: TileProps) => {
         }
     };
 
-    const subscribe = async () => {
+    const createSubscription = async (emailNotificationsEnabled: boolean, emailNotificationsSender: string = undefined) => {
         actionDispatch({ type: "setWorkIndicator", payload: true });
 
         await WebApiClient.Create({
             entityName: "oss_subscription",
             entity: {
-                [`${props.config.subscriptionLookup}@odata.bind`]: `/${props.metadata.LogicalCollectionName}(${props.data[props.metadata.PrimaryIdAttribute].replace("{", "").replace("}", "")})`
+                [`${props.config.subscriptionLookup}@odata.bind`]: `/${props.metadata.LogicalCollectionName}(${props.data[props.metadata.PrimaryIdAttribute].replace("{", "").replace("}", "")})`,
+                "oss_emailnotificationsenabled": emailNotificationsEnabled,
+                "oss_emailnotificationssender": emailNotificationsSender
             }
         });
 
@@ -218,6 +221,9 @@ const TileRender = (props: TileProps) => {
         appDispatch({ type: "setSubscriptions", payload: subscriptions });
         actionDispatch({ type: "setWorkIndicator", payload: false });
     };
+
+    const subscribe = () => createSubscription(false);
+    const subscribeWithEmail = () => createSubscription(true, props.config.emailNotificationsSender ? JSON.stringify(props.config.emailNotificationsSender) : undefined);
 
     const unsubscribe = async () => {
         actionDispatch({ type: "setWorkIndicator", payload: true });
@@ -259,6 +265,8 @@ const TileRender = (props: TileProps) => {
     };
 
     const isSubscribed = props.subscriptions && props.subscriptions.length;
+    const isMailSubscribed = isSubscribed && props.subscriptions.some(s => s.oss_emailnotificationsenabled);
+    const hasNotifications = props.notifications && props.notifications.length;
 
     console.log(`${props.metadata.LogicalName} tile ${props.data[props.metadata.PrimaryIdAttribute]} is rerendering`);
 
@@ -320,6 +328,14 @@ const TileRender = (props: TileProps) => {
                 iconProps: { iconName: 'Ringer' },
                 onClick: subscribe
             },
+            props.config.emailSubscriptionsEnabled
+            ? {
+                key: 'subscribeWithEmail',
+                text: 'Subscribe with Email',
+                iconProps: { iconName: 'Mail' },
+                onClick: subscribeWithEmail
+            }
+            : undefined,
             {
                 key: 'unsubscribe',
                 text: 'Unsubscribe',
@@ -341,9 +357,26 @@ const TileRender = (props: TileProps) => {
         ]
     };
 
+    const iconName = isMailSubscribed
+        ? (hasNotifications ? 'MailSolid' : 'Mail')
+        : (isSubscribed ? (hasNotifications ? 'RingerSolid' : 'Ringer') : 'RingerOff');
+
+    React.useEffect(() => {
+        if (!props.config.styleCallback) {
+            return;
+        }
+
+        const executeStyleCallback = async () => {
+            const styleCallbackResult = await Promise.resolve(accessFunc(props.config.styleCallback)({ data: props.data, WebApiClient: WebApiClient }));
+            setOverriddenStyle(styleCallbackResult);
+        };
+
+        executeStyleCallback();
+    }, [props.data, props.laneOption]);
+
     return (
         <div ref={ props.preventDrag ? stub : drag}>
-            <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: "1px", borderColor: "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style}}}>
+            <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: "1px", borderColor: "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle}}}>
                 <Card.Section styles={{root: { padding: "10px", borderBottom: "1px solid rgba(0,0,0,.125)" }}}>
                     <div style={{display: "flex", flexDirection: "column"}}>
                         <div style={{display: "flex", flexDirection: "row"}}>
@@ -354,10 +387,10 @@ const TileRender = (props: TileProps) => {
                                         <IconButton
                                             id="notificationButton"
                                             styles={customSplitButtonStyles}
-                                            iconProps={{ iconName: isSubscribed ? ( props.notifications && props.notifications.length ? 'RingerSolid' : 'Ringer') : 'RingerOff', style: { color: props.notifications && props.notifications.length ? "red" : "inherit" }}}
+                                            iconProps={{ iconName: iconName, style: { color: hasNotifications ? "red" : "inherit" }}}
                                             split
                                             aria-roledescription="split button"
-                                            menuProps={subscriptionMenuProps}
+                                            menuProps={{ items: subscriptionMenuProps.items.filter(m => !!m) }}
                                             onClick={showNotifications}
                                         />
                                     </>

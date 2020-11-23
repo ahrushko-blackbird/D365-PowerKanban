@@ -43,15 +43,32 @@ const determineAttributeUrl = (attribute: Attribute) => {
 };
 
 const fetchSeparatorMetadata = async (entity: string, swimLaneSource: string, metadata: Metadata) => {
+  const cacheKey = `__d365powerkanban_entity_${entity}_field_${swimLaneSource}`;
+  const cachedEntry = sessionStorage.getItem(cacheKey);
+
+  if (cachedEntry != null) {
+    return JSON.parse(cachedEntry);
+  }
+
   const field = metadata.Attributes.find(a => a.LogicalName.toLowerCase() === swimLaneSource.toLowerCase())!;
   const typeUrl = determineAttributeUrl(field);
 
   const response: Attribute = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')/Attributes(LogicalName='${field.LogicalName}')/${typeUrl}?$expand=OptionSet`});
+  sessionStorage.setItem(cacheKey, JSON.stringify(response));
+
   return response;
 };
 
 const fetchMetadata = async (entity: string) => {
-  const response: Metadata = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')?$expand=Attributes`});
+  const cacheKey = `__d365powerkanban_entity_${entity}`;
+  const cachedEntry = sessionStorage.getItem(cacheKey);
+
+  if (cachedEntry != null) {
+    return JSON.parse(cachedEntry);
+  }
+
+  const response = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')?$expand=Attributes`});
+  sessionStorage.setItem(cacheKey, JSON.stringify(response));
 
   return response;
 };
@@ -500,7 +517,11 @@ export const Board = () => {
         onChange={setView}
         placeholder="Select view"
         selectedKey={actionState.selectedView?.savedqueryid}
-        options={ views?.map(v => ({ key: v.savedqueryid, text: v.name})) }
+        options={ views?.filter(v => 
+            (!configState.config.primaryEntity.hiddenViews || !configState.config.primaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
+            && (!configState.config.primaryEntity.visibleViews || !configState.config.primaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
+          )
+          .map(v => ({ key: v.savedqueryid, text: v.name})) }
       />,
     },
     {
@@ -536,7 +557,12 @@ export const Board = () => {
         onChange={setSecondaryView}
         placeholder="Select view"
         selectedKey={actionState.selectedSecondaryView?.savedqueryid}
-        options={secondaryViews?.map(v => ({ key: v.savedqueryid, text: v.name}))}
+        options={secondaryViews?.filter(v => 
+            (!configState.config.secondaryEntity.hiddenViews || !configState.config.secondaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
+            && (!configState.config.secondaryEntity.visibleViews || !configState.config.secondaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
+          )
+          .map(v => ({ key: v.savedqueryid, text: v.name}))
+        }
       />
       }
     : null

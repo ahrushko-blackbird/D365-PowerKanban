@@ -1,4 +1,5 @@
-﻿using Microsoft.Xrm.Sdk;
+﻿using Microsoft.Crm.Sdk.Messages;
+using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using System;
 using System.Collections.Generic;
@@ -34,10 +35,26 @@ namespace Xrm.Oss.PowerKanban
         [DataMember(Name = "xtlCondition")]
         public string XtlCondition { get; set; }
 
+        [DataMember(Name = "globalNotificationConfig")]
+        public Dictionary<string, string> GlobalNotificationConfig { get; set; }
+
         [DataMember(Name = "messageConfig")]
         public Dictionary<string, string> MessageConfig { get; set; }
+
+        [DataMember(Name = "emailLocaleConfig")]
+        public Dictionary<string, string> EmailLocaleConfig { get; set; }
     }
     
+    [DataContract]
+    public class GlobalNotificationActionPayload
+    {
+        [DataMember(Name = "entityName")]
+        public string EntityName { get; set; }
+
+        [DataMember(Name = "message")]
+        public string Message { get; set; }
+    }
+
     public enum EventType {
         Update = 863910000,
         Create = 863910001,
@@ -182,7 +199,7 @@ namespace Xrm.Oss.PowerKanban
                         .To(0)
                     )
                 )
-                .IncludeColumns("ownerid")
+                .IncludeColumns("ownerid", "oss_emailnotificationsenabled", "oss_emailnotificationssender")
                 .Link(l => l
                     .FromEntity("oss_subscription")
                     .ToEntity("systemuser")
@@ -227,17 +244,20 @@ namespace Xrm.Oss.PowerKanban
                         : (messageConfig.ContainsKey("default") ? TokenMatcher.ProcessTokens(messageConfig["default"], target, new OrganizationConfig(), service, crmTracing) : null)
                 );
 
-            subscriptions.ForEach(subscription => {
+            subscriptions.ForEach(subscription =>
+            {
                 var localeCode = subscription.GetAttributeValue<AliasedValue>("usersettings.localeid")?.Value as int?;
                 var locale = localeCode != null ? localeCode.Value.ToString() : "default";
 
                 var message = messages.ContainsKey(locale) ? messages[locale] : null;
+                var user = subscription.GetAttributeValue<EntityReference>("ownerid");
 
                 var notification = new Entity
                 {
                     LogicalName = "oss_notification",
                     Attributes = {
-                        ["ownerid"] = subscription.GetAttributeValue<EntityReference>("ownerid"),
+                        ["oss_subscriptionid"] = subscription.ToEntityReference(),
+                        ["ownerid"] = user,
                         ["oss_event"] = new OptionSetValue((int) eventType),
                         [config.Value.NotificationLookupName] = eventTarget,
                         ["oss_data"] = serializedNotification,
@@ -245,8 +265,82 @@ namespace Xrm.Oss.PowerKanban
                     }
                 };
 
-                service.Create(notification);
+                if (config.Value.GlobalNotificationConfig != null)
+                {
+                    var messageKey = config.Value.GlobalNotificationConfig.Keys.FirstOrDefault(k => k == locale) ?? config.Value.GlobalNotificationConfig.Keys.FirstOrDefault(k => k == "default");
+                    
+                    if (messageKey != null)
+                    {
+                        var notificationMessage = config.Value.GlobalNotificationConfig[messageKey];
+
+                        var payload = new GlobalNotificationActionPayload
+                        {
+                            EntityName = eventTarget?.LogicalName,
+                            Message = notificationMessage
+                        };
+
+                        notification["oss_globalnotificationactionpayload"] = JsonSerializer.Serialize(payload);
+                    }
+                }
+
+                notification.Id = service.Create(notification);
+
+                var emailNotificationsEnabled = subscription.GetAttributeValue<bool>("oss_emailnotificationsenabled");
+
+                if (!emailNotificationsEnabled)
+                {
+                    return;
+                }
+
+                SendEmailNotification(message, locale, user, subscription, notification, service);
             });
+        }
+
+        private void SendEmailNotification(string message, string locale, EntityReference user, Entity subscription, Entity notification, IOrganizationService service)
+        {
+            var emailNotificationsSenderText = subscription.GetAttributeValue<string>("oss_emailnotificationssender");
+            var sender = string.IsNullOrEmpty(emailNotificationsSenderText) ? user : JsonDeserializer.Parse<EntityReference>(emailNotificationsSenderText);
+
+            var email = new Entity
+            {
+                LogicalName = "email",
+                ["from"] = new EntityCollection(new List<Entity>
+                    {
+                        new Entity {
+                            LogicalName = "activityparty",
+                            ["partyid"] = sender
+                        }
+                    }),
+                ["to"] = new EntityCollection(new List<Entity>
+                    {
+                        new Entity {
+                            LogicalName = "activityparty",
+                            ["partyid"] = user
+                        }
+                    }),
+                ["regardingobjectid"] = notification.ToEntityReference(),
+                ["subject"] = "New D365 Notification",
+                ["description"] = message
+            };
+
+            if (config.Value.EmailLocaleConfig != null && config.Value.EmailLocaleConfig.ContainsKey(locale))
+            {
+                email["oss_htmltemplateuniquename"] = config.Value.EmailLocaleConfig[locale];
+            }
+            else if (config.Value.EmailLocaleConfig != null && config.Value.EmailLocaleConfig.ContainsKey("default"))
+            {
+                email["oss_htmltemplateuniquename"] = config.Value.EmailLocaleConfig["default"];
+            }
+
+            email.Id = service.Create(email);
+
+            var sendRequest = new SendEmailRequest
+            {
+                EmailId = email.Id,
+                IssueSend = true
+            };
+
+            service.Execute(sendRequest);
         }
     }
 }

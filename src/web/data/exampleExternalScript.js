@@ -1,5 +1,11 @@
 window.boardViewExtender = {};
 
+window.boardViewExtender.styleCallback = function(context) {
+    const data = context.data;
+
+    return { borderRight: "3px solid green" };
+};
+
 window.boardViewExtender.onStateTransition = function(context) {
     if (![5, 1000].includes(context.target.Value)) {
         return;

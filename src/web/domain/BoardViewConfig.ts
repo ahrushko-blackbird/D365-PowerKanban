@@ -1,4 +1,5 @@
 import { FlyOutForm } from "./FlyOutForm";
+import { EntityReference } from "xrm-webapi-client";
 
 export interface CustomButton {
     id: string;
@@ -12,6 +13,11 @@ export interface BoardEntity {
     swimLaneSource: string;
     hiddenLanes: Array<number>;
     visibleLanes: Array<number>;
+    hiddenViews: Array<string>;
+    visibleViews: Array<string>;
+    emailSubscriptionsEnabled: boolean;
+    emailNotificationsSender: { Id: string; LogicalName: string; };
+    styleCallback: string;
     transitionCallback: string;
     notificationLookup: string;
     subscriptionLookup: string;
