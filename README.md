@@ -53,6 +53,8 @@ Todos:
 ## Notification List
 ![image](https://user-images.githubusercontent.com/4287938/90894792-6e7b7780-e3c1-11ea-8520-2629a9849732.png)
 
+## Global Notifications
+![image](https://user-images.githubusercontent.com/4287938/100028074-5e26ce80-2dee-11eb-9522-315ecaafa02c.png)
 
 # Installation
 - Download and install the [latest managed solution](/../../releases/latest)
