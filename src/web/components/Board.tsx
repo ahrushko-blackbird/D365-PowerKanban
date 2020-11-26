@@ -73,9 +73,45 @@ const fetchMetadata = async (entity: string) => {
   return response;
 };
 
-const fetchConfig = async (configId: string): Promise<BoardViewConfig> => {
-  const config = await WebApiClient.Retrieve({entityName: "oss_powerkanbanconfig", entityId: configId, queryParams: "?$select=oss_value" });
+const fetchViews = async (entity: string) => {
+  const cacheKey = `__d365powerkanban_views_${entity}`;
+  const cachedEntry = sessionStorage.getItem(cacheKey);
 
+  if (cachedEntry != null) {
+    return JSON.parse(cachedEntry);
+  }
+
+  const response = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${entity}' and querytype eq 0 and statecode eq 0`});
+  sessionStorage.setItem(cacheKey, JSON.stringify(response));
+
+  return response;
+};
+
+const fetchForms = async (entity: string) => {
+  const cacheKey = `__d365powerkanban_forms_${entity}`;
+  const cachedEntry = sessionStorage.getItem(cacheKey);
+
+  if (cachedEntry != null) {
+    return JSON.parse(cachedEntry);
+  }
+
+  const response = await WebApiClient.Retrieve({entityName: "systemform", queryParams: `?$select=formxml,name&$filter=objecttypecode eq '${entity}' and type eq 11`});
+  sessionStorage.setItem(cacheKey, JSON.stringify(response));
+
+  return response;
+};
+
+const fetchConfig = async (configId: string): Promise<BoardViewConfig> => {
+  const cacheKey = `__d365powerkanban_config_${configId}`;
+  const cachedEntry = sessionStorage.getItem(cacheKey);
+
+  if (cachedEntry != null) {
+    return JSON.parse(cachedEntry);
+  }
+
+  const config = await WebApiClient.Retrieve({entityName: "oss_powerkanbanconfig", entityId: configId, queryParams: "?$select=oss_value" });
+  sessionStorage.setItem(cacheKey, config.oss_value);
+  
   return JSON.parse(config.oss_value);
 };
 
@@ -95,7 +131,13 @@ export const Board = () => {
   const [ displayState, setDisplayState ] = React.useState<DisplayState>("simple" as any);
   const [ appliedSearchText, setAppliedSearch ] = React.useState(undefined);
   const [ showNotificationRecordsOnly, setShowNotificationRecordsOnly ] = React.useState(false);
+  const [ error, setError ] = React.useState(undefined);
+
   const isFirstRun = React.useRef(true);
+
+  if (error) {
+    throw error;
+  }
 
   const getConfigId = async () => {
     if (configState.configId) {
@@ -154,13 +196,19 @@ export const Board = () => {
       configDispatch({ type: "setStateMetadata", payload: stateMetadata });
       actionDispatch({ type: "setProgressText", payload: "Fetching views" });
 
-      const { value: views}: { value: Array<SavedQuery> } = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${config.primaryEntity.logicalName}' and querytype eq 0 and statecode eq 0`});
-      setViews(views);
+      const { value: views}: { value: Array<SavedQuery> } = await fetchViews(config.primaryEntity.logicalName);
+      setViews(views.filter(v => 
+        (!config.primaryEntity.hiddenViews || !config.primaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
+        && (!config.primaryEntity.visibleViews || config.primaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
+      ));
 
       let defaultSecondaryView;
       if (config.secondaryEntity) {
-        const { value: secondaryViews }: { value: Array<SavedQuery>} = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${config.secondaryEntity.logicalName}' and querytype eq 0 and statecode eq 0`});
-        setSecondaryViews(secondaryViews);
+        const { value: secondaryViews }: { value: Array<SavedQuery>} = await fetchViews(config.secondaryEntity.logicalName);
+        setSecondaryViews(secondaryViews.filter(v => 
+          (!config.secondaryEntity.hiddenViews || !config.secondaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
+          && (!config.secondaryEntity.visibleViews || config.secondaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
+        ));
 
         defaultSecondaryView = config.secondaryEntity.defaultView
           ? secondaryViews.find(v => [v.savedqueryid, v.name].map(i => i.toLowerCase()).includes(config.secondaryEntity.defaultView.toLowerCase())) ?? secondaryViews[0]
@@ -176,17 +224,17 @@ export const Board = () => {
       actionDispatch({ type: "setSelectedView", payload: defaultView });
       actionDispatch({ type: "setProgressText", payload: "Fetching forms" });
 
-      const { value: forms} = await WebApiClient.Retrieve({entityName: "systemform", queryParams: `?$select=formxml,name&$filter=objecttypecode eq '${config.primaryEntity.logicalName}' and type eq 11`});
+      const { value: forms} = await fetchForms(config.primaryEntity.logicalName);
       const processedForms = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
       setCardForms(processedForms);
 
-      const { value: notificationForms } = await WebApiClient.Retrieve({entityName: "systemform", queryParams: `?$select=formxml,name&$filter=objecttypecode eq 'oss_notification' and type eq 11`});
+      const { value: notificationForms } = await fetchForms("oss_notification");
       const processedNotificationForms = notificationForms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
       configDispatch({ type: "setNotificationForm", payload: processedNotificationForms[0] });
 
       let defaultSecondaryForm;
       if (config.secondaryEntity) {
-        const { value: forms} = await WebApiClient.Retrieve({entityName: "systemform", queryParams: `?$select=formxml,name&$filter=objecttypecode eq '${config.secondaryEntity.logicalName}' and type eq 11`});
+        const { value: forms} = await fetchForms(config.secondaryEntity.logicalName);
         const processedSecondaryForms = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
         setSecondaryCardForms(processedSecondaryForms);
 
@@ -240,7 +288,8 @@ export const Board = () => {
       actionDispatch({ type: "setProgressText", payload: undefined });
     }
     catch (e) {
-      Xrm.Utility.alertDialog(e?.message ?? e, () => {});
+      actionDispatch({ type: "setProgressText", payload: undefined });
+      setError(e);
     }
   };
 
@@ -517,11 +566,7 @@ export const Board = () => {
         onChange={setView}
         placeholder="Select view"
         selectedKey={actionState.selectedView?.savedqueryid}
-        options={ views?.filter(v => 
-            (!configState.config.primaryEntity.hiddenViews || !configState.config.primaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
-            && (!configState.config.primaryEntity.visibleViews || !configState.config.primaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
-          )
-          .map(v => ({ key: v.savedqueryid, text: v.name})) }
+        options={ views?.map(v => ({ key: v.savedqueryid, text: v.name})) }
       />,
     },
     {
@@ -557,11 +602,7 @@ export const Board = () => {
         onChange={setSecondaryView}
         placeholder="Select view"
         selectedKey={actionState.selectedSecondaryView?.savedqueryid}
-        options={secondaryViews?.filter(v => 
-            (!configState.config.secondaryEntity.hiddenViews || !configState.config.secondaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
-            && (!configState.config.secondaryEntity.visibleViews || !configState.config.secondaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
-          )
-          .map(v => ({ key: v.savedqueryid, text: v.name}))
+        options={secondaryViews?.map(v => ({ key: v.savedqueryid, text: v.name}))
         }
       />
       }
