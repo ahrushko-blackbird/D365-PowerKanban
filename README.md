@@ -58,7 +58,7 @@ Todos:
 
 # Installation
 - Download and install the [latest managed solution](/../../releases/latest)
-- If you update from a version prior to 0.9.18 or want to use the same fields as in the Wiki examples, and you need the oss_taskid / oss_accountid / oss_incidentid fields on notification / subscription or the example script resource for an incident kanban, you can install the D365PowerKanbanSamples solution. They are not part of the default solution anymore.
+- If you update from a version prior to 0.9.18 or want to use the same fields as in the Wiki examples, and you need the oss_taskid / oss_accountid / oss_incidentid fields on notification / subscription or the example script resource for an incident kanban, you can install the [D365PowerKanbanSamples](/tree/master/export) solution. They are not part of the default solution anymore. You can find the solution [here](/tree/master/export)
 
 # Configuration
 - Please see our [Wiki](https://github.com/XRM-OSS/D365-PowerKanban/wiki/Configuration)
