@@ -2,6 +2,9 @@
 
 This is a custom PCF control for displaying a Kanban inside D365 datasets.
 
+> Entity Metadata and PowerKanban configs are cached for the lifetime of your browser session. This greatly improves performance
+If any issues occur, close your browser and reopen it again to clear the sessionStorage.
+
 Features so far:
 - Supports option sets, status codes and boolean attributes as swimlane sources
 - Color schemes are taken from option set color values
