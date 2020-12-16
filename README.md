@@ -2,7 +2,7 @@
 
 This is a custom PCF control for displaying a Kanban inside D365 datasets.
 
-> Entity Metadata, PowerKanban configs, views and card forms are cached for the lifetime of your browser session. This greatly improves performance
+> Entity Metadata, PowerKanban configs, views and card forms are cached for the lifetime of your browser session. This greatly improves performance.
 If any issues occur, close your browser and reopen it again to clear the sessionStorage.
 
 Features so far:
