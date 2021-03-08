@@ -10,7 +10,6 @@ type Action = { type: "setAppId", payload: string }
     | { type: "setSeparatorMetadata", payload: Attribute }
     | { type: "setSecondaryMetadata", payload: { entity: string; data: Metadata } }
     | { type: "setSecondarySeparatorMetadata", payload: Attribute }
-    | { type: "setStateMetadata", payload: Attribute }
     | { type: "setNotificationForm", payload: CardForm };
 
 export type ConfigDispatch = (action: Action) => void;
@@ -67,9 +66,6 @@ function stateReducer(state: ConfigStateProps, action: Action): ConfigStateProps
             }
 
             return { ...state, secondarySeparatorMetadata: action.payload };
-        }
-        case "setStateMetadata": {
-            return { ...state, stateMetadata: action.payload };
         }
         case "setNotificationForm": {
             return { ...state, notificationForm: action.payload };

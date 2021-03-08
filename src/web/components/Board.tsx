@@ -102,15 +102,7 @@ const fetchForms = async (entity: string) => {
 };
 
 const fetchConfig = async (configId: string): Promise<BoardViewConfig> => {
-  const cacheKey = `__d365powerkanban_config_${configId}`;
-  const cachedEntry = sessionStorage.getItem(cacheKey);
-
-  if (cachedEntry != null) {
-    return JSON.parse(cachedEntry);
-  }
-
   const config = await WebApiClient.Retrieve({entityName: "oss_powerkanbanconfig", entityId: configId, queryParams: "?$select=oss_value" });
-  sessionStorage.setItem(cacheKey, config.oss_value);
   
   return JSON.parse(config.oss_value);
 };
@@ -174,7 +166,6 @@ export const Board = () => {
 
       const metadata = await fetchMetadata(config.primaryEntity.logicalName);
       const attributeMetadata = await fetchSeparatorMetadata(config.primaryEntity.logicalName, config.primaryEntity.swimLaneSource, metadata);
-      const stateMetadata = await fetchSeparatorMetadata(config.primaryEntity.logicalName, "statecode", metadata);
 
       const notificationMetadata = await fetchMetadata("oss_notification");
       configDispatch({ type: "setSecondaryMetadata", payload: { entity: "oss_notification", data: notificationMetadata } });
@@ -193,7 +184,6 @@ export const Board = () => {
       configDispatch({ type: "setConfig", payload: config });
       configDispatch({ type: "setMetadata", payload: metadata });
       configDispatch({ type: "setSeparatorMetadata", payload: attributeMetadata });
-      configDispatch({ type: "setStateMetadata", payload: stateMetadata });
       actionDispatch({ type: "setProgressText", payload: "Fetching views" });
 
       const { value: views}: { value: Array<SavedQuery> } = await fetchViews(config.primaryEntity.logicalName);
