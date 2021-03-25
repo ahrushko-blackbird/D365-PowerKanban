@@ -9,7 +9,6 @@ export enum DisplayType {
 }
 
 type Action = { type: "setSelectedRecord", payload: Xrm.LookupValue }
-    | { type: "setSelectedView", payload: SavedQuery }
     | { type: "setSelectedForm", payload: CardForm }
     | { type: "setSelectedSecondaryView", payload: SavedQuery }
     | { type: "setSelectedSecondaryForm", payload: CardForm }
@@ -23,7 +22,6 @@ export type ActionDispatch = (action: Action) => void;
 
 export type ActionStateProps = {
     progressText?: string;
-    selectedView?: SavedQuery;
     selectedForm?: CardForm;
     selectedViewData?: { columns: Array<string>; linkEntities: Array<{ entityName: string, alias: string }> }
     selectedSecondaryView?: SavedQuery;
@@ -56,9 +54,6 @@ function stateReducer(state: ActionStateProps, action: Action): ActionStateProps
     switch (action.type) {
         case "setSelectedRecord": {
             return { ...state, selectedRecord: action.payload };
-        }
-        case "setSelectedView": {
-            return { ...state, selectedView: action.payload, selectedViewData: { columns: parseLayoutColumns(action.payload.layoutxml), linkEntities: parseLinksFromFetch(action.payload.fetchxml) } };
         }
         case "setSelectedForm": {
             return { ...state, selectedForm: action.payload };

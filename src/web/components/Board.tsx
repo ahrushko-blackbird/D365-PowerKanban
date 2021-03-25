@@ -114,7 +114,6 @@ export const Board = () => {
   const [ actionState, actionDispatch ] = useActionContext();
   const [ configState, configDispatch ] = useConfigContext();
 
-  const [ views, setViews ] = React.useState<Array<SavedQuery>>([]);
   const [ secondaryViews, setSecondaryViews ] = React.useState<Array<SavedQuery>>([]);
   const [ cardForms, setCardForms ] = React.useState<Array<CardForm>>([]);
   const [ secondaryCardForms, setSecondaryCardForms ] = React.useState<Array<CardForm>>([]);
@@ -186,12 +185,6 @@ export const Board = () => {
       configDispatch({ type: "setSeparatorMetadata", payload: attributeMetadata });
       actionDispatch({ type: "setProgressText", payload: "Fetching views" });
 
-      const { value: views}: { value: Array<SavedQuery> } = await fetchViews(config.primaryEntity.logicalName);
-      setViews(views.filter(v => 
-        (!config.primaryEntity.hiddenViews || !config.primaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
-        && (!config.primaryEntity.visibleViews || config.primaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
-      ));
-
       let defaultSecondaryView;
       if (config.secondaryEntity) {
         const { value: secondaryViews }: { value: Array<SavedQuery>} = await fetchViews(config.secondaryEntity.logicalName);
@@ -207,11 +200,6 @@ export const Board = () => {
         actionDispatch({ type: "setSelectedSecondaryView", payload: defaultSecondaryView });
       }
 
-      const defaultView = config.primaryEntity.defaultView
-          ? views.find(v => [v.savedqueryid, v.name].map(i => i.toLowerCase()).includes(config.primaryEntity.defaultView.toLowerCase())) ?? views[0]
-          : views[0];
-
-      actionDispatch({ type: "setSelectedView", payload: defaultView });
       actionDispatch({ type: "setProgressText", payload: "Fetching forms" });
 
       const { value: forms} = await fetchForms(config.primaryEntity.logicalName);
@@ -251,7 +239,7 @@ export const Board = () => {
 
       actionDispatch({ type: "setProgressText", payload: "Fetching data" });
 
-      const data = await fetchData(config.primaryEntity.logicalName, defaultView.fetchxml, config.primaryEntity.swimLaneSource, defaultForm, metadata, attributeMetadata, true, appState);
+      const data = await fetchData(config.primaryEntity.logicalName, null, config.primaryEntity.swimLaneSource, defaultForm, metadata, attributeMetadata, true, appState, {  });
 
       if (config.secondaryEntity) {
         const secondaryData = await fetchData(config.secondaryEntity.logicalName,
@@ -288,14 +276,6 @@ export const Board = () => {
     setDisplayState("simple");
     initializeConfig();
   }, [ configState.configId ]);
-
-  const setView = (event: React.FormEvent<HTMLDivElement>, item: IDropdownOption) => {
-    const viewId = item.key;
-    const view = views.find(v => v.savedqueryid === viewId);
-
-    actionDispatch({ type: "setSelectedView", payload: view });
-    refresh(appDispatch, appState, configState, actionDispatch, actionState, view.fetchxml);
-  };
 
   const setForm = (event: React.FormEvent<HTMLDivElement>, item: IDropdownOption) => {
     const formId = item.key;
@@ -547,17 +527,6 @@ export const Board = () => {
     {
       key: 'configSelector',
       onRender: () => <IconButton iconProps={{ iconName: "Waffle" }} styles={navItemStyles} onClick={openConfigSelector}></IconButton>
-    },
-    {
-      key: 'viewSelector',
-      onRender: () => <Dropdown
-        styles={dropdownStyles}
-        id="viewSelector"
-        onChange={setView}
-        placeholder="Select view"
-        selectedKey={actionState.selectedView?.savedqueryid}
-        options={ views?.map(v => ({ key: v.savedqueryid, text: v.name})) }
-      />,
     },
     {
       key: 'formSelector',

@@ -50,8 +50,10 @@ const prepareFetch = (fetchXml: string, swimLaneSource: string, form: CardForm, 
       });
     }
 
+    const safeFetchXml = fetchXml ? fetchXml : `<fetch no-lock="true"><entity name="${metadata.LogicalName}"></entity></fetch>`
+
     const parser = new DOMParser();
-    const xml = parser.parseFromString(fetchXml, "application/xml");
+    const xml = parser.parseFromString(safeFetchXml, "application/xml");
     const root = xml.getElementsByTagName("fetch")[0];
     const entity = root.getElementsByTagName("entity")[0];
 
@@ -109,7 +111,7 @@ const prepareFetch = (fetchXml: string, swimLaneSource: string, form: CardForm, 
       entity.append(filter);
 
       if (didOverflow) {
-        return prepareFetch(fetchXml, swimLaneSource, form, metadata, {...options, additionalCondition: { ...c, values: c.values.slice(maxInFilterSize) }}, [...tempFetches, serializer.serializeToString(xml)]);
+        return prepareFetch(safeFetchXml, swimLaneSource, form, metadata, {...options, additionalCondition: { ...c, values: c.values.slice(maxInFilterSize) }}, [...tempFetches, serializer.serializeToString(xml)]);
       }
     }
 
@@ -124,7 +126,7 @@ export const fetchData = async (entityName: string, fetchXml: string, swimLaneSo
       return [];
     }
 
-    const fetches = prepareFetch(fetchXml, swimLaneSource, form, metadata, (!isPrimary || appState.primaryDataIds == null || !appState.primaryEntityId)
+    const fetches = prepareFetch(fetchXml, swimLaneSource, form, metadata, (!isPrimary || appState.primaryDataIds == null)
       ? options
       : {
           ...options, 
@@ -246,7 +248,7 @@ export const refresh = async (appDispatch: AppStateDispatch, appState: AppStateP
 
   try {
     const data = await fetchData(configState.config.primaryEntity.logicalName,
-      fetchXml ?? actionState.selectedView.fetchxml,
+      fetchXml,
       configState.config.primaryEntity.swimLaneSource,
       selectedForm ?? actionState.selectedForm,
       configState.metadata,
