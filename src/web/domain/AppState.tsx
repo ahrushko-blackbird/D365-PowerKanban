@@ -3,6 +3,7 @@ import { BoardLane } from "./BoardLane";
 import { Subscription } from "./Subscription";
 import { Notification } from "./Notification";
 import { AppProps } from "../components/App";
+import { IInputs } from "../PowerKanban/generated/ManifestTypes";
 
 type Action = { type: "setBoardData", payload: Array<BoardLane> }
     | { type: "setSecondaryData", payload: Array<any> }
@@ -19,6 +20,7 @@ export type AppStateProps = {
     notifications?: {[key: string]: Array<Notification>};
     primaryDataIds?: Array<string>;
     primaryEntityId?: string;
+    pcfContext?: ComponentFramework.Context<IInputs>;
 };
 
 type AppContextProps = {

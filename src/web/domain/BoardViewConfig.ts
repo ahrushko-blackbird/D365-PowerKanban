@@ -1,5 +1,6 @@
 import { FlyOutForm } from "./FlyOutForm";
 import { EntityReference } from "xrm-webapi-client";
+import { DisplayState } from "../components/Board";
 
 export interface CustomButton {
     id: string;
@@ -13,8 +14,6 @@ export interface BoardEntity {
     swimLaneSource: string;
     hiddenLanes: Array<number>;
     visibleLanes: Array<number>;
-    hiddenViews: Array<string>;
-    visibleViews: Array<string>;
     emailSubscriptionsEnabled: boolean;
     emailNotificationsSender: { Id: string; LogicalName: string; };
     styleCallback: string;
@@ -22,7 +21,6 @@ export interface BoardEntity {
     notificationLookup: string;
     subscriptionLookup: string;
     preventTransitions: boolean;
-    defaultView: string;
     customButtons: Array<CustomButton>;
     fitLanesToScreenWidth: boolean;
     hideCountOnLane: boolean;
@@ -31,6 +29,9 @@ export interface BoardEntity {
 
 export interface SecondaryEntity extends BoardEntity {
     parentLookup: string;
+    hiddenViews: Array<string>;
+    visibleViews: Array<string>;
+    defaultView: string;
 }
 
 export interface Context {
@@ -45,4 +46,6 @@ export interface BoardViewConfig {
     primaryEntity: PrimaryEntity;
     secondaryEntity: SecondaryEntity;
     customScriptUrl: string;
+    cachingEnabled: boolean;
+    defaultDisplayState: DisplayState;
 }

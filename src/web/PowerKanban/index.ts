@@ -71,7 +71,8 @@ export class PowerKanban implements ComponentFramework.StandardControl<IInputs, 
 			primaryEntityLogicalName: this._context.parameters.primaryDataSet.getTargetEntityType(),
 			configId: this.config ? this.config.oss_powerkanbanconfigid : null,
 			primaryEntityId: (context.mode as any).contextInfo.entityId,
-			primaryDataIds: this._context.parameters.primaryDataSet.sortedRecordIds
+			primaryDataIds: this._context.parameters.primaryDataSet.sortedRecordIds,
+			pcfContext: this._context
 		};
 
 		ReactDOM.render(

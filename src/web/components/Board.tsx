@@ -42,72 +42,7 @@ const determineAttributeUrl = (attribute: Attribute) => {
   throw new Error(`Type ${attribute.AttributeType} is not allowed as swim lane separator.`);
 };
 
-const fetchSeparatorMetadata = async (entity: string, swimLaneSource: string, metadata: Metadata) => {
-  const cacheKey = `__d365powerkanban_entity_${entity}_field_${swimLaneSource}`;
-  const cachedEntry = sessionStorage.getItem(cacheKey);
-
-  if (cachedEntry != null) {
-    return JSON.parse(cachedEntry);
-  }
-
-  const field = metadata.Attributes.find(a => a.LogicalName.toLowerCase() === swimLaneSource.toLowerCase())!;
-  const typeUrl = determineAttributeUrl(field);
-
-  const response: Attribute = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')/Attributes(LogicalName='${field.LogicalName}')/${typeUrl}?$expand=OptionSet`});
-  sessionStorage.setItem(cacheKey, JSON.stringify(response));
-
-  return response;
-};
-
-const fetchMetadata = async (entity: string) => {
-  const cacheKey = `__d365powerkanban_entity_${entity}`;
-  const cachedEntry = sessionStorage.getItem(cacheKey);
-
-  if (cachedEntry != null) {
-    return JSON.parse(cachedEntry);
-  }
-
-  const response = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')?$expand=Attributes`});
-  sessionStorage.setItem(cacheKey, JSON.stringify(response));
-
-  return response;
-};
-
-const fetchViews = async (entity: string) => {
-  const cacheKey = `__d365powerkanban_views_${entity}`;
-  const cachedEntry = sessionStorage.getItem(cacheKey);
-
-  if (cachedEntry != null) {
-    return JSON.parse(cachedEntry);
-  }
-
-  const response = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${entity}' and querytype eq 0 and statecode eq 0`});
-  sessionStorage.setItem(cacheKey, JSON.stringify(response));
-
-  return response;
-};
-
-const fetchForms = async (entity: string) => {
-  const cacheKey = `__d365powerkanban_forms_${entity}`;
-  const cachedEntry = sessionStorage.getItem(cacheKey);
-
-  if (cachedEntry != null) {
-    return JSON.parse(cachedEntry);
-  }
-
-  const response = await WebApiClient.Retrieve({entityName: "systemform", queryParams: `?$select=formxml,name&$filter=objecttypecode eq '${entity}' and type eq 11`});
-  sessionStorage.setItem(cacheKey, JSON.stringify(response));
-
-  return response;
-};
-
-const fetchConfig = async (configId: string): Promise<BoardViewConfig> => {
-  const config = await WebApiClient.Retrieve({entityName: "oss_powerkanbanconfig", entityId: configId, queryParams: "?$select=oss_value" });
-  
-  return JSON.parse(config.oss_value);
-};
-
-type DisplayState = "simple" | "advanced";
+export type DisplayState = "simple" | "advanced";
 
 export const Board = () => {
   const [ appState, appDispatch ] = useAppContext();
@@ -130,6 +65,77 @@ export const Board = () => {
     throw error;
   }
 
+  const getOrSetCachedJsonObjects = async(cachedKey: string, generator: () => Promise<any>) => {
+    const currentCacheKey = `${(appState.pcfContext as any).orgSettings.uniqueName}_${cachedKey}`;
+    const cachedEntry = sessionStorage.getItem(currentCacheKey);
+  
+    if (cachedEntry) {
+      return JSON.parse(cachedEntry);
+    }
+    
+    const entry = await Promise.resolve(generator());
+    sessionStorage.setItem(currentCacheKey, JSON.stringify(entry));
+  
+    return entry;
+  };
+
+  const getOrSetJsonObject = async(cacheKey: string, generator: () => Promise<any>) => {
+    if(configState.config.cachingEnabled) {
+      return getOrSetCachedJsonObjects(cacheKey, generator);
+    }
+
+    return generator();
+  };
+
+  const fetchSeparatorMetadata = async (entity: string, swimLaneSource: string, metadata: Metadata) => {
+    const cacheKey = `__d365powerkanban_entity_${entity}_field_${swimLaneSource}`;
+    const generator = async () => {
+      const field = metadata.Attributes.find(a => a.LogicalName.toLowerCase() === swimLaneSource.toLowerCase())!;
+      const typeUrl = determineAttributeUrl(field);
+  
+      const response: Attribute = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')/Attributes(LogicalName='${field.LogicalName}')/${typeUrl}?$expand=OptionSet`});
+      return response;
+    };
+  
+    return getOrSetJsonObject(cacheKey, generator);
+  };
+  
+  const fetchMetadata = async (entity: string) => {
+    const cacheKey = `__d365powerkanban_entity_${entity}`;
+    const generator = async () => {
+      const response = await WebApiClient.Retrieve({entityName: "EntityDefinition", queryParams: `(LogicalName='${entity}')?$expand=Attributes`});
+      return response;
+    };
+  
+    return getOrSetJsonObject(cacheKey, generator);
+  };
+  
+  const fetchViews = async (entity: string) => {
+    const cacheKey = `__d365powerkanban_views_${entity}`;
+    const generator = async () => {
+      const response = await WebApiClient.Retrieve({entityName: "savedquery", queryParams: `?$select=layoutxml,fetchxml,savedqueryid,name&$filter=returnedtypecode eq '${entity}' and querytype eq 0 and statecode eq 0&$orderby=name`});
+      return response;
+    };
+  
+    return getOrSetJsonObject(cacheKey, generator);
+  };
+  
+  const fetchForms = async (entity: string) => {
+    const cacheKey = `__d365powerkanban_forms_${entity}`;
+    const generator = async () => {
+      const response = await WebApiClient.Retrieve({entityName: "systemform", queryParams: `?$select=formxml,name&$filter=objecttypecode eq '${entity}' and type eq 11`});
+      return response;
+    };
+  
+    return getOrSetJsonObject(cacheKey, generator);
+  };
+  
+  const fetchConfig = async (configId: string): Promise<BoardViewConfig> => {
+    const config = await WebApiClient.Retrieve({entityName: "oss_powerkanbanconfig", entityId: configId, queryParams: "?$select=oss_value" });
+    
+    return JSON.parse(config.oss_value);
+  };
+
   const getConfigId = async () => {
     if (configState.configId) {
       return configState.configId;
@@ -141,7 +147,7 @@ export const Board = () => {
     return user.oss_defaultboardid;
   };
 
-  const initializeConfig = async () => {
+  const loadConfig = async () => {
     try {
       appDispatch({ type: "setSecondaryData", payload: [] });
       appDispatch({ type: "setBoardData", payload: [] });
@@ -161,10 +167,28 @@ export const Board = () => {
         await loadExternalScript(config.customScriptUrl);
       }
 
+      if (config.defaultDisplayState && ([ "simple", "advanced" ] as Array<DisplayState>).includes(config.defaultDisplayState)) {
+        setDisplayState(config.defaultDisplayState);
+      }
+
+      configDispatch({ type: "setConfig", payload: config });
+    }
+    catch (e) {
+      actionDispatch({ type: "setProgressText", payload: undefined });
+      setError(e);
+    }
+  };
+
+  const initializeConfig = async () => {
+    if (!configState.config) {
+      return;
+    }
+
+    try {
       actionDispatch({ type: "setProgressText", payload: "Fetching meta data" });
 
-      const metadata = await fetchMetadata(config.primaryEntity.logicalName);
-      const attributeMetadata = await fetchSeparatorMetadata(config.primaryEntity.logicalName, config.primaryEntity.swimLaneSource, metadata);
+      const metadata = await fetchMetadata(configState.config.primaryEntity.logicalName);
+      const attributeMetadata = await fetchSeparatorMetadata(configState.config.primaryEntity.logicalName, configState.config.primaryEntity.swimLaneSource, metadata);
 
       const notificationMetadata = await fetchMetadata("oss_notification");
       configDispatch({ type: "setSecondaryMetadata", payload: { entity: "oss_notification", data: notificationMetadata } });
@@ -172,29 +196,28 @@ export const Board = () => {
       let secondaryMetadata: Metadata;
       let secondaryAttributeMetadata: Attribute;
 
-      if (config.secondaryEntity) {
-        secondaryMetadata = await fetchMetadata(config.secondaryEntity.logicalName);
-        secondaryAttributeMetadata = await fetchSeparatorMetadata(config.secondaryEntity.logicalName, config.secondaryEntity.swimLaneSource, secondaryMetadata);
+      if (configState.config.secondaryEntity) {
+        secondaryMetadata = await fetchMetadata(configState.config.secondaryEntity.logicalName);
+        secondaryAttributeMetadata = await fetchSeparatorMetadata(configState.config.secondaryEntity.logicalName, configState.config.secondaryEntity.swimLaneSource, secondaryMetadata);
 
-        configDispatch({ type: "setSecondaryMetadata", payload: { entity: config.secondaryEntity.logicalName, data: secondaryMetadata } });
+        configDispatch({ type: "setSecondaryMetadata", payload: { entity: configState.config.secondaryEntity.logicalName, data: secondaryMetadata } });
         configDispatch({ type: "setSecondarySeparatorMetadata", payload: secondaryAttributeMetadata });
       }
 
-      configDispatch({ type: "setConfig", payload: config });
       configDispatch({ type: "setMetadata", payload: metadata });
       configDispatch({ type: "setSeparatorMetadata", payload: attributeMetadata });
       actionDispatch({ type: "setProgressText", payload: "Fetching views" });
 
       let defaultSecondaryView;
-      if (config.secondaryEntity) {
-        const { value: secondaryViews }: { value: Array<SavedQuery>} = await fetchViews(config.secondaryEntity.logicalName);
+      if (configState.config.secondaryEntity) {
+        const { value: secondaryViews }: { value: Array<SavedQuery>} = await fetchViews(configState.config.secondaryEntity.logicalName);
         setSecondaryViews(secondaryViews.filter(v => 
-          (!config.secondaryEntity.hiddenViews || !config.secondaryEntity.hiddenViews.some(h => v.name === h || v.savedqueryid === h))
-          && (!config.secondaryEntity.visibleViews || config.secondaryEntity.visibleViews.some(h => v.name === h || v.savedqueryid === h))
+          (!configState.config.secondaryEntity.hiddenViews || !configState.config.secondaryEntity.hiddenViews.some(h => v.name?.toLowerCase() === h?.toLowerCase() || v.savedqueryid?.toLowerCase() === h?.toLowerCase()))
+          && (!configState.config.secondaryEntity.visibleViews || configState.config.secondaryEntity.visibleViews.some(h => v.name?.toLowerCase() === h?.toLowerCase() || v.savedqueryid?.toLowerCase() === h?.toLowerCase()))
         ));
 
-        defaultSecondaryView = config.secondaryEntity.defaultView
-          ? secondaryViews.find(v => [v.savedqueryid, v.name].map(i => i.toLowerCase()).includes(config.secondaryEntity.defaultView.toLowerCase())) ?? secondaryViews[0]
+        defaultSecondaryView = configState.config.secondaryEntity.defaultView
+          ? secondaryViews.find(v => [v.savedqueryid, v.name].map(i => i.toLowerCase()).includes(configState.config.secondaryEntity.defaultView.toLowerCase())) ?? secondaryViews[0]
           : secondaryViews[0];
 
         actionDispatch({ type: "setSelectedSecondaryView", payload: defaultSecondaryView });
@@ -202,7 +225,7 @@ export const Board = () => {
 
       actionDispatch({ type: "setProgressText", payload: "Fetching forms" });
 
-      const { value: forms} = await fetchForms(config.primaryEntity.logicalName);
+      const { value: forms} = await fetchForms(configState.config.primaryEntity.logicalName);
       const processedForms = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
       setCardForms(processedForms);
 
@@ -211,8 +234,8 @@ export const Board = () => {
       configDispatch({ type: "setNotificationForm", payload: processedNotificationForms[0] });
 
       let defaultSecondaryForm;
-      if (config.secondaryEntity) {
-        const { value: forms} = await fetchForms(config.secondaryEntity.logicalName);
+      if (configState.config.secondaryEntity) {
+        const { value: forms} = await fetchForms(configState.config.secondaryEntity.logicalName);
         const processedSecondaryForms = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
         setSecondaryCardForms(processedSecondaryForms);
 
@@ -224,36 +247,36 @@ export const Board = () => {
 
       if (!defaultForm) {
         actionDispatch({ type: "setProgressText", payload: undefined });
-        return Xrm.Utility.alertDialog(`Did not find any card forms for ${config.primaryEntity.logicalName}, please create one.`, () => {});
+        return Xrm.Utility.alertDialog(`Did not find any card forms for ${configState.config.primaryEntity.logicalName}, please create one.`, () => {});
       }
 
       actionDispatch({ type: "setSelectedForm", payload: defaultForm });
 
       actionDispatch({ type: "setProgressText", payload: "Fetching subscriptions" });
-      const subscriptions = await fetchSubscriptions(config);
+      const subscriptions = await fetchSubscriptions(configState.config);
       appDispatch({ type: "setSubscriptions", payload: subscriptions });
 
       actionDispatch({ type: "setProgressText", payload: "Fetching notifications" });
-      const notifications = await fetchNotifications(config);
+      const notifications = await fetchNotifications(configState.config);
       appDispatch({ type: "setNotifications", payload: notifications });
 
       actionDispatch({ type: "setProgressText", payload: "Fetching data" });
 
-      const data = await fetchData(config.primaryEntity.logicalName, null, config.primaryEntity.swimLaneSource, defaultForm, metadata, attributeMetadata, true, appState, {  });
+      const data = await fetchData(configState.config.primaryEntity.logicalName, null, configState.config.primaryEntity.swimLaneSource, defaultForm, metadata, attributeMetadata, true, appState, {  });
 
-      if (config.secondaryEntity) {
-        const secondaryData = await fetchData(config.secondaryEntity.logicalName,
+      if (configState.config.secondaryEntity) {
+        const secondaryData = await fetchData(configState.config.secondaryEntity.logicalName,
           defaultSecondaryView.fetchxml,
-          config.secondaryEntity.swimLaneSource,
+          configState.config.secondaryEntity.swimLaneSource,
           defaultSecondaryForm,
           secondaryMetadata,
           secondaryAttributeMetadata,
           false,
           appState,
           {
-            additionalFields: [ config.secondaryEntity.parentLookup ],
+            additionalFields: [ configState.config.secondaryEntity.parentLookup ],
             additionalCondition: {
-              attribute: config.secondaryEntity.parentLookup,
+              attribute: configState.config.secondaryEntity.parentLookup,
               operator: "in",
               values: data.some(d => d.data.length > 1) ? data.reduce((all, d) => [...all, ...d.data.map(laneData => laneData[metadata.PrimaryIdAttribute] as string)], [] as Array<string>) : ["00000000-0000-0000-0000-000000000000"]
             }
@@ -271,11 +294,15 @@ export const Board = () => {
     }
   };
 
+  // This is used for reloading when selected configid changes
+  React.useEffect(() => {
+    loadConfig();
+  }, [ configState.configId ]);
+
   // This is used for reinitializing when selected config changes
   React.useEffect(() => {
-    setDisplayState("simple");
     initializeConfig();
-  }, [ configState.configId ]);
+  }, [ configState.config ]);
 
   const setForm = (event: React.FormEvent<HTMLDivElement>, item: IDropdownOption) => {
     const formId = item.key;
@@ -640,16 +667,17 @@ export const Board = () => {
         items={navItems.filter(i => !!i)}
       />
       <DndContainer>
-        { displayState === "advanced" &&
-          <div id="advancedContainer" style={{ display: "flex", flexDirection: "column", overflow: "auto" }}>
-            { advancedData }
-          </div>
-        }
-        { displayState === "simple" && 
-          <div id="flexContainer" style={{ display: "flex", flexDirection: "row", overflow: "auto", flex: "1" }}>
+        <div id="allInOne" style={{ display: "flex", flexDirection: "column", overflow: "auto", height: "100%" }}>
+          { displayState === "advanced" &&
+            <div id="advancedContainer" style={{ display: "flex", flexDirection: "column" }}>
+              { advancedData }
+            </div>
+          }
+
+          <div id="flexContainer" style={{ display: "flex", flexDirection: "row", flex: "1" }}>
             { simpleData }
           </div>
-        }
+        </div>
       </DndContainer>
     </div>
   );
