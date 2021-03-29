@@ -22,7 +22,7 @@ const FieldRowRender = (props: FieldRowProps) => {
 
     const toPlainText = (text: string): string => text != null && text.indexOf("<html>") !== -1 ? htmlToText.fromString(text) : text;
 
-    const highlightSearch = (text: object) => {
+    const highlightSearch = (text: object, entity: string, fieldName: string) => {
         if (text == null) {
             return text;
         }
@@ -33,12 +33,14 @@ const FieldRowRender = (props: FieldRowProps) => {
             ? { wordBreak: "break-word", whiteSpace: "pre-wrap" }
             : { overflow: "hidden", textOverflow: "ellipsis" };
 
+        const className= `d365-powerkanban-field d365-powerkanban-field-${entity} d365-powerkanban-field-${entity}-${fieldName}`;
+
         if(!props.searchString) {
-            return <Text style={style}>{ plainText }</Text>;
+            return <Text className={className} style={style}>{ plainText }</Text>;
         }
 
         const substrings = plainText.split(new RegExp(`(${RegexEscape(props.searchString)})`, "gi"));
-        return (<Text style={style}>
+        return (<Text className={className} style={style}>
             {
                 substrings.map((s, i) => (<Text key={i} style={s.toLowerCase() === props.searchString.toLowerCase() ? { backgroundColor: "yellow", ...style } : style}>{s}</Text>))
             }
@@ -49,17 +51,17 @@ const FieldRowRender = (props: FieldRowProps) => {
         const formattedValue = props.data[`${fieldName}@OData.Community.Display.V1.FormattedValue`];
 
         if (formattedValue) {
-            return highlightSearch(formattedValue);
+            return highlightSearch(formattedValue, props.metadata.LogicalName, fieldName);
         }
 
         const lookupFormatted = props.data[`_${fieldName}_value@OData.Community.Display.V1.FormattedValue`];
 
         if (lookupFormatted) {
             const targetEntity = props.data[`_${fieldName}_value@Microsoft.Dynamics.CRM.lookuplogicalname`];
-            return (<Link id={`${targetEntity}.${props.data[`_${fieldName}_value`]}`} onClick={openRecord}>{highlightSearch(lookupFormatted)}</Link>);
+            return (<Link id={`${targetEntity}.${props.data[`_${fieldName}_value`]}`} onClick={openRecord}>{highlightSearch(lookupFormatted, props.metadata.LogicalName, fieldName)}</Link>);
         }
 
-        return highlightSearch(props.data[fieldName]);
+        return highlightSearch(props.data[fieldName], props.metadata.LogicalName, fieldName);
     };
 
     // tslint:disable-next-line: no-null-keyword

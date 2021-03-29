@@ -10,7 +10,7 @@ import { CardForm, parseCardForm } from "../domain/CardForm";
 import { fetchData, refresh, fetchSubscriptions, fetchNotifications } from "../domain/fetchData";
 import { Tile } from "./Tile";
 import { DndContainer } from "./DndContainer";
-import { loadExternalScript } from "../domain/LoadExternalScript";
+import { loadExternalResource, loadExternalScript } from "../domain/LoadExternalResource";
 import { useConfigContext, ConfigStateProps } from "../domain/ConfigState";
 import { useActionContext, DisplayType } from "../domain/ActionState";
 import { SearchBox } from "@fluentui/react/lib/SearchBox";
@@ -58,6 +58,7 @@ export const Board = () => {
   const [ appliedSearchText, setAppliedSearch ] = React.useState(undefined);
   const [ showNotificationRecordsOnly, setShowNotificationRecordsOnly ] = React.useState(false);
   const [ error, setError ] = React.useState(undefined);
+  const [ customStyle, setCustomStyle ] = React.useState(undefined);
 
   const isFirstRun = React.useRef(true);
 
@@ -151,6 +152,7 @@ export const Board = () => {
     try {
       appDispatch({ type: "setSecondaryData", payload: [] });
       appDispatch({ type: "setBoardData", payload: [] });
+      setCustomStyle(undefined);
 
       const configId = await getConfigId();
 
@@ -165,6 +167,11 @@ export const Board = () => {
       if (config.customScriptUrl) {
         actionDispatch({ type: "setProgressText", payload: "Loading custom scripts" });
         await loadExternalScript(config.customScriptUrl);
+      }
+
+      if (config.customStyleUrl) {
+        actionDispatch({ type: "setProgressText", payload: "Loading custom styles" });
+        setCustomStyle(await loadExternalResource(config.customStyleUrl));
       }
 
       if (config.defaultDisplayState && ([ "simple", "advanced" ] as Array<DisplayState>).includes(config.defaultDisplayState)) {
@@ -659,6 +666,7 @@ export const Board = () => {
 
   return (
     <div style={{height: "100%", display: "flex", flexDirection: "column" }}>
+      { customStyle && <style>{customStyle}</style> }
       <OverflowSet
         role="menubar"
         styles={{root: {backgroundColor: "#f8f9fa"}}}

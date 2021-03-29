@@ -1,4 +1,4 @@
-export const loadExternalScript = (url: string) => {
+export const loadExternalScript = async (url: string) => {
     return new Promise((resolve, reject) => {
         const scriptTag = document.createElement("script");
 
@@ -8,4 +8,9 @@ export const loadExternalScript = (url: string) => {
 
         document.body.appendChild(scriptTag);
     });
+};
+
+export const loadExternalResource = async (url: string) => {
+    const content = await fetch(url);
+    return content.text();
 };

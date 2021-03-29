@@ -46,6 +46,7 @@ export interface BoardViewConfig {
     primaryEntity: PrimaryEntity;
     secondaryEntity: SecondaryEntity;
     customScriptUrl: string;
+    customStyleUrl: string;
     cachingEnabled: boolean;
     defaultDisplayState: DisplayState;
 }
