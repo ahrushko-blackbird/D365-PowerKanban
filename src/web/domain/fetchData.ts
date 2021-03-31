@@ -147,9 +147,14 @@ export const fetchData = async (entityName: string, fetchXml: string, swimLaneSo
       data.push(...tempData);
     }
 
+    // For not primary data, records are already sorted by fetch. Primary data has to be sorted by the primaryDataIds (sortedRecordIds) property as they are otherwise unsorted
+    const sortedData = (!isPrimary || appState.primaryDataIds == null)
+      ? data
+      : appState.primaryDataIds.map(id => data.find(d => d[metadata.PrimaryIdAttribute] === id)).filter(d => !!d);
+
     const lanes = attribute.AttributeType === "Boolean" ? [ attribute.OptionSet.FalseOption, attribute.OptionSet.TrueOption ] : attribute.OptionSet.Options.sort((a, b) => a.State - b.State);
 
-    return data.reduce((all: Array<BoardLane>, record) => {
+    return sortedData.reduce((all: Array<BoardLane>, record) => {
       const laneSource = record[swimLaneSource];
 
       if (laneSource == null) {

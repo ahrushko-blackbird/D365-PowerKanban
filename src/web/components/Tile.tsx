@@ -1,23 +1,23 @@
 import * as React from "react";
-import { useAppContext, useAppDispatch, AppStateProps, AppStateDispatch } from "../domain/AppState";
+import { useAppDispatch } from "../domain/AppState";
 import { FieldRow } from "./FieldRow";
 import { Metadata, Option, Attribute } from "../domain/Metadata";
 import { CardForm } from "../domain/CardForm";
 import { BoardLane } from "../domain/BoardLane";
 import { Lane } from "./Lane";
 import { ItemTypes } from "../domain/ItemTypes";
-import { refresh, fetchSubscriptions, fetchNotifications } from "../domain/fetchData";
+import { fetchSubscriptions, fetchNotifications } from "../domain/fetchData";
 import * as WebApiClient from "xrm-webapi-client";
 import { useDrag, DragSourceMonitor } from "react-dnd";
 import { FlyOutForm } from "../domain/FlyOutForm";
 import { Notification } from "../domain/Notification";
-import { BoardViewConfig, PrimaryEntity, BoardEntity } from "../domain/BoardViewConfig";
+import { BoardEntity } from "../domain/BoardViewConfig";
 import { Subscription } from "../domain/Subscription";
 import { useConfigState } from "../domain/ConfigState";
-import { useActionContext, DisplayType, useActionDispatch } from "../domain/ActionState";
-import { DefaultButton, IButtonStyles } from "@fluentui/react/lib/Button";
-import { Card, ICardTokens, ICardSectionStyles, ICardSectionTokens, ICardStyles } from '@uifabric/react-cards';
-import { PrimaryButton, IconButton } from "@fluentui/react/lib/Button";
+import { DisplayType, useActionDispatch } from "../domain/ActionState";
+import { IButtonStyles } from "@fluentui/react/lib/Button";
+import { Card, ICardStyles } from '@uifabric/react-cards';
+import { IconButton } from "@fluentui/react/lib/Button";
 import { Persona, PersonaSize } from "@fluentui/react/lib/Persona";
 
 interface TileProps {
@@ -39,6 +39,7 @@ interface TileProps {
     subscriptions: Array<Subscription>;
     refresh: () => Promise<void>;
     preventDrag?: boolean;
+    openRecord: (reference: Xrm.LookupValue) => void;
 }
 
 const TileRender = (props: TileProps) => {
@@ -148,7 +149,10 @@ const TileRender = (props: TileProps) => {
     };
 
     const openInline = () => {
-        Xrm.Navigation.openForm({ entityName: props.metadata.LogicalName, entityId: props.data[props.metadata?.PrimaryIdAttribute], openInNewWindow: false });
+        props.openRecord({
+            entityType: props.metadata.LogicalName,
+            id: props.data[props.metadata?.PrimaryIdAttribute]
+        });
     };
 
     const quickOpen = () => {
@@ -437,6 +441,7 @@ const TileRender = (props: TileProps) => {
                                 lane={d}
                                 config={secondaryConfig}
                                 separatorMetadata={secondarySeparator}
+                                openRecord={props.openRecord}
                                 isSecondaryLane />)
                             }
                         </div>

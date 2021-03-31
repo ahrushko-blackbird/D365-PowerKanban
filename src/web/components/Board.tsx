@@ -66,6 +66,10 @@ export const Board = () => {
     throw error;
   }
 
+  const openRecord = React.useCallback((reference: Xrm.LookupValue) => {
+    appState.pcfContext.parameters.primaryDataSet.openDatasetItem(reference as any);
+  }, []);
+
   const getOrSetCachedJsonObjects = async(cachedKey: string, generator: () => Promise<any>) => {
     const currentCacheKey = `${(appState.pcfContext as any).orgSettings.uniqueName}_${cachedKey}`;
     const cachedEntry = sessionStorage.getItem(currentCacheKey);
@@ -460,7 +464,8 @@ export const Board = () => {
         config={configState.config.primaryEntity}
         separatorMetadata={configState.separatorMetadata}
         preventDrag={true}
-        secondaryData={secondaryData} />
+        secondaryData={secondaryData}
+        openRecord={openRecord} />
       );
     })), []);
   }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.secondaryData, stateFilters, secondaryStateFilters, appliedSearchText, appState.notifications, appState.subscriptions, actionState.selectedSecondaryForm, configState.configId]);
@@ -480,6 +485,7 @@ export const Board = () => {
       searchText={appliedSearchText}
       config={configState.config.primaryEntity}
       separatorMetadata={configState.separatorMetadata}
+      openRecord={openRecord}
       lane={{...d, data: d.data.filter(r => displayState === "simple" || appState.secondaryData && appState.secondaryData.every(t => t.data.every(tt => tt[`_${configState.config.secondaryEntity.parentLookup}_value`] !== r[configState.metadata.PrimaryIdAttribute])))}} />);
   }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.subscriptions, stateFilters, appState.secondaryData, appliedSearchText, appState.notifications, configState.configId]);
 

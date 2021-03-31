@@ -25,6 +25,7 @@ interface LaneProps {
     separatorMetadata: Attribute;
     subscriptions: {[key: string]: Array<Subscription>};
     isSecondaryLane?: boolean;
+    openRecord: (reference: Xrm.LookupValue) => void;
 }
 
 const LaneRender = (props: LaneProps) => {
@@ -70,7 +71,8 @@ const LaneRender = (props: LaneProps) => {
       searchText={props.searchText}
       data={d}
       config={props.config}
-      separatorMetadata={props.separatorMetadata} />
+      separatorMetadata={props.separatorMetadata}
+      openRecord={props.openRecord} />
     );
 
     return (
