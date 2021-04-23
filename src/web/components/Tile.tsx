@@ -6,7 +6,7 @@ import { CardForm } from "../domain/CardForm";
 import { BoardLane } from "../domain/BoardLane";
 import { Lane } from "./Lane";
 import { ItemTypes } from "../domain/ItemTypes";
-import { fetchSubscriptions, fetchNotifications } from "../domain/fetchData";
+import { fetchSubscriptions, fetchNotifications, extractTextFromAttribute } from "../domain/fetchData";
 import * as WebApiClient from "xrm-webapi-client";
 import { useDrag, DragSourceMonitor } from "react-dnd";
 import { FlyOutForm } from "../domain/FlyOutForm";
@@ -19,6 +19,7 @@ import { IButtonStyles } from "@fluentui/react/lib/Button";
 import { Card, ICardStyles } from '@uifabric/react-cards';
 import { IconButton } from "@fluentui/react/lib/Button";
 import { Persona, PersonaSize } from "@fluentui/react/lib/Persona";
+import { FetchUserAvatar } from "../domain/FetchUserInfo";
 
 interface TileProps {
     borderColor: string;
@@ -47,11 +48,31 @@ const TileRender = (props: TileProps) => {
     const configState = useConfigState();
     const actionDispatch = useActionDispatch();
     const [overriddenStyle, setOverriddenStyle] = React.useState({} as ICardStyles);
+    const [ personaUrl, setPersonaUrl ] = React.useState(undefined);
 
     const secondaryConfig = configState.config.secondaryEntity;
     const secondaryMetadata = configState.secondaryMetadata[secondaryConfig ? secondaryConfig.logicalName : ""];
     const secondarySeparator = configState.secondarySeparatorMetadata;
     const stub = React.useRef(undefined);
+
+    if (props.config.persona) {
+        React.useEffect(() => {
+            const personaAttribute = props.metadata.Attributes.find(a => a.LogicalName?.toLowerCase() === props.config.persona);
+
+            if (!personaAttribute || personaAttribute.AttributeType !== "Owner") {
+                return;
+            }
+
+            const ownerType = props.data[`_${props.config.persona}_value@Microsoft.Dynamics.CRM.lookuplogicalname`];
+            const ownerId = props.data[`_${props.config.persona}_value`];
+
+            if (ownerType !== "systemuser" || !ownerId) {
+                return;
+            }
+
+            FetchUserAvatar(ownerId).then(setPersonaUrl);
+        }, [ props.data[props.config.persona] ]);
+    }
 
     const context = {
         showForm: (form: FlyOutForm) => {
@@ -378,14 +399,19 @@ const TileRender = (props: TileProps) => {
         executeStyleCallback();
     }, [props.data, props.laneOption]);
 
+    const personaTitle = props.config.persona ? extractTextFromAttribute(props.data, props.config.persona) : props.data[props.metadata.PrimaryNameAttribute];
+
     return (
         <div ref={ props.preventDrag ? stub : drag}>
             <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: "1px", borderColor: "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle}}}>
                 <Card.Section styles={{root: { padding: "10px", borderBottom: "1px solid rgba(0,0,0,.125)" }}}>
                     <div style={{display: "flex", flexDirection: "column"}}>
                         <div style={{display: "flex", flexDirection: "row"}}>
-                            <Persona text={props.data[props.metadata.PrimaryNameAttribute]} hidePersonaDetails={true} size={PersonaSize.size32}></Persona>
-                            <div style={{alignSelf: "flex-end", marginLeft: "auto"}}>
+                            { props.config.persona !== null && <Persona title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} hidePersonaDetails={true} size={PersonaSize.size32}></Persona> }
+                            <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
+                                { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }
+                            </div>
+                            <div style={{ marginLeft: "auto" }}>
                                 { props.config.notificationLookup && props.config.subscriptionLookup && 
                                     <>
                                         <IconButton
@@ -409,9 +435,6 @@ const TileRender = (props: TileProps) => {
                                     onClick={quickOpen}
                                 />
                             </div>
-                        </div>
-                        <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
-                            { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }
                         </div>
                     </div>
                 </Card.Section>

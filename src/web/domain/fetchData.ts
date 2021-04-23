@@ -39,7 +39,16 @@ const prepareFetch = (fetchXml: string, swimLaneSource: string, form: CardForm, 
     // We make sure that the swim lane source is always included without having to update all views
     if (formFields.every(f => f !== swimLaneSource)) {
       formFields.push(swimLaneSource);
+    }
+
+    if (formFields.every(f => f !== metadata.PrimaryNameAttribute)) {
       formFields.push(metadata.PrimaryNameAttribute);
+    }
+
+    const ownerField = metadata.Attributes.find(a => a.LogicalName?.toLowerCase() === "ownerid");
+
+    if (ownerField && formFields.every(f => f !== ownerField.LogicalName)) {
+      formFields.push(ownerField.LogicalName);
     }
 
     if (options?.additionalFields) {
@@ -295,4 +304,15 @@ export const refresh = async (appDispatch: AppStateDispatch, appState: AppStateP
   }
 
   actionDispatch({ type: "setWorkIndicator", payload: false });
+};
+
+export const extractTextFromAttribute = (data: {[key: string]: any}, displayField: string) => {
+  if (!data) {
+    return "";
+  }
+
+  return data[`${displayField}@OData.Community.Display.V1.FormattedValue`]
+    ?? data[`_${displayField}_value@OData.Community.Display.V1.FormattedValue`]
+    ?? data[displayField]?.toString()
+    ?? "";
 };

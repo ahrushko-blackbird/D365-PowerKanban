@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useAppContext } from "../domain/AppState";
 
-import { fetchData, refresh } from "../domain/fetchData";
+import { extractTextFromAttribute, fetchData, refresh } from "../domain/fetchData";
 import { UserInputModal } from "./UserInputModalProps";
 import { useActionContext } from "../domain/ActionState";
 import { FlyOutField, FlyOutLookupField } from "../domain/FlyOutForm";
@@ -86,10 +86,7 @@ export const ExternalForm = (props: ExternalFormProps) => {
         setFormData({ ...formData, [fieldId]: item?.key });
     };
 
-    const getTextFromItemByKey = (item: IExtendedTag, displayField: string) =>
-        item.data[`${displayField}@OData.Community.Display.V1.FormattedValue`]
-        ?? item.data[`_${displayField}_value@OData.Community.Display.V1.FormattedValue`]
-        ?? item.data[displayField]?.toString();
+    const getTextFromItemByKey = (item: IExtendedTag, displayField: string) => extractTextFromAttribute(item.data, displayField);
 
     const getTextFromItem = (item: IExtendedTag, field: FlyOutLookupField) => getTextFromItemByKey(item, field.displayField?.toLowerCase()) ?? "(No Data)";
 

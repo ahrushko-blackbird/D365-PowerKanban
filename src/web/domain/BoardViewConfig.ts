@@ -25,6 +25,7 @@ export interface BoardEntity {
     fitLanesToScreenWidth: boolean;
     hideCountOnLane: boolean;
     defaultOpenHandler: "inline" | "sidebyside" | "modal" | "newwindow";
+    persona: string;
 }
 
 export interface SecondaryEntity extends BoardEntity {

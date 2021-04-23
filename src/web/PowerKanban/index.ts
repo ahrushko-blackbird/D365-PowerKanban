@@ -2,7 +2,6 @@ import {IInputs, IOutputs} from "./generated/ManifestTypes";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { App, AppProps } from "../components/App";
-import { ParseSearch } from "../domain/ParseSearch";
 import * as WebApiClient from "xrm-webapi-client";
  
 import DataSetInterfaces = ComponentFramework.PropertyHelper.DataSetApi;
@@ -22,20 +21,6 @@ export class PowerKanban implements ComponentFramework.StandardControl<IInputs, 
 	{
 	}
 
-	private async loadAllPages(columns: Array<string>): Promise<Array<any>>
-	{
-		if (!this._context.parameters.primaryDataSet.paging || this._context.parameters.primaryDataSet.loading) {
-			return;
-		}
-
-		this._context.parameters.primaryDataSet.paging.setPageSize(5000);
-		this._context.parameters.primaryDataSet.paging.reset();
-
-		while (this._context.parameters.primaryDataSet.paging.hasNextPage) {
-			this._context.parameters.primaryDataSet.paging.loadNextPage();
-		}
-	}
-
 	/**
 	 * Used to initialize the control instance. Controls can kick off remote server calls and other initialization actions here.
 	 * Data-set values are not initialized here, use updateView.
@@ -49,8 +34,6 @@ export class PowerKanban implements ComponentFramework.StandardControl<IInputs, 
 		this._notifyOutputChanged = notifyOutputChanged;
 		this._context = context;
 		this._container = container;
-
-		this._context.parameters.primaryDataSet.paging.setPageSize(5000);
 	}
 
 	/**
@@ -59,7 +42,10 @@ export class PowerKanban implements ComponentFramework.StandardControl<IInputs, 
 	 */
 	public async updateView(context: ComponentFramework.Context<IInputs>): Promise<void>
 	{
-		const search = ParseSearch();
+		if ((this._context.parameters.primaryDataSet.paging as any).pageSize !== 5000) {
+			this._context.parameters.primaryDataSet.paging.setPageSize(5000);
+			this._context.parameters.primaryDataSet.refresh();
+		}
 
 		if (!this.config) {
 			const configName = this._context.parameters.configName.raw;
@@ -67,7 +53,7 @@ export class PowerKanban implements ComponentFramework.StandardControl<IInputs, 
 		}
 
 		const props: AppProps = {
-			appId: search["appid"] ?? search["app"] ?? "d365default",
+			appId: (this._context as any).page?.appId,
 			primaryEntityLogicalName: this._context.parameters.primaryDataSet.getTargetEntityType(),
 			configId: this.config ? this.config.oss_powerkanbanconfigid : null,
 			primaryEntityId: (context.mode as any).contextInfo.entityId,

@@ -386,7 +386,7 @@ export const Board = () => {
   };
 
   const refreshBoard = async () => {
-    await refresh(appDispatch, appState, configState, actionDispatch, actionState);
+    appState.pcfContext.parameters.primaryDataSet.refresh();
   };
 
   // Refresh board when external dataset refreshed
