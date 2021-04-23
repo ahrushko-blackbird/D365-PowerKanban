@@ -48,7 +48,7 @@ const TileRender = (props: TileProps) => {
     const configState = useConfigState();
     const actionDispatch = useActionDispatch();
     const [overriddenStyle, setOverriddenStyle] = React.useState({} as ICardStyles);
-    const [ personaUrl, setPersonaUrl ] = React.useState(undefined);
+    const [ personaUrl, setPersonaUrl ] = React.useState<string>(undefined);
 
     const secondaryConfig = configState.config.secondaryEntity;
     const secondaryMetadata = configState.secondaryMetadata[secondaryConfig ? secondaryConfig.logicalName : ""];
@@ -70,7 +70,9 @@ const TileRender = (props: TileProps) => {
                 return;
             }
 
-            FetchUserAvatar(ownerId).then(setPersonaUrl);
+            FetchUserAvatar(ownerId).then(url => {
+                setPersonaUrl(url);
+            });
         }, [ props.data[props.config.persona] ]);
     }
 
@@ -408,9 +410,6 @@ const TileRender = (props: TileProps) => {
                     <div style={{display: "flex", flexDirection: "column"}}>
                         <div style={{display: "flex", flexDirection: "row"}}>
                             { props.config.persona !== null && <Persona title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} hidePersonaDetails={true} size={PersonaSize.size32}></Persona> }
-                            <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
-                                { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }
-                            </div>
                             <div style={{ marginLeft: "auto" }}>
                                 { props.config.notificationLookup && props.config.subscriptionLookup && 
                                     <>
@@ -435,6 +434,9 @@ const TileRender = (props: TileProps) => {
                                     onClick={quickOpen}
                                 />
                             </div>
+                        </div>
+                        <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
+                            { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }
                         </div>
                     </div>
                 </Card.Section>

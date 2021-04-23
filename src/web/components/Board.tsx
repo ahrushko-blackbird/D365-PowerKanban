@@ -400,7 +400,7 @@ export const Board = () => {
       return;
     }
 
-    refreshBoard();
+    refresh(appDispatch, appState, configState, actionDispatch, actionState);
   }, [ appState.primaryDataIds ]);
 
   const openConfigSelector = () => {
@@ -681,17 +681,16 @@ export const Board = () => {
         items={navItems.filter(i => !!i)}
       />
       <DndContainer>
-        <div id="allInOne" style={{ display: "flex", flexDirection: "column", overflow: "auto", height: "100%" }}>
-          { displayState === "advanced" &&
-            <div id="advancedContainer" style={{ display: "flex", flexDirection: "column" }}>
-              { advancedData }
-            </div>
-          }
-
-          <div id="flexContainer" style={{ display: "flex", flexDirection: "row", flex: "1" }}>
+        { displayState === "advanced" &&
+          <div id="advancedContainer" style={{ display: "flex", flexDirection: "column", overflow: "auto" }}>
+            { advancedData }
+          </div>
+        }
+        { displayState === "simple" && 
+          <div id="flexContainer" style={{ display: "flex", flexDirection: "row", overflow: "auto", flex: "1" }}>
             { simpleData }
           </div>
-        </div>
+        }
       </DndContainer>
     </div>
   );
