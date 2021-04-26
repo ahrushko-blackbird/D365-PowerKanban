@@ -42,9 +42,16 @@ export class PowerKanban implements ComponentFramework.StandardControl<IInputs, 
 	 */
 	public async updateView(context: ComponentFramework.Context<IInputs>): Promise<void>
 	{
+		if (this._context.parameters.primaryDataSet.loading) {
+			return;
+		}
+
+		// Only render once all primary IDs are settled
 		if ((this._context.parameters.primaryDataSet.paging as any).pageSize !== 5000) {
 			this._context.parameters.primaryDataSet.paging.setPageSize(5000);
 			this._context.parameters.primaryDataSet.refresh();
+			
+			return;
 		}
 
 		if (!this.config) {

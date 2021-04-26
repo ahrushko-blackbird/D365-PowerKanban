@@ -402,14 +402,20 @@ const TileRender = (props: TileProps) => {
     }, [props.data, props.laneOption]);
 
     const personaTitle = props.config.persona ? extractTextFromAttribute(props.data, props.config.persona) : props.data[props.metadata.PrimaryNameAttribute];
-
+    const headerData = <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
+          { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }                  
+    </div>;
+    
     return (
         <div ref={ props.preventDrag ? stub : drag}>
             <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: "1px", borderColor: "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle}}}>
                 <Card.Section styles={{root: { padding: "10px", borderBottom: "1px solid rgba(0,0,0,.125)" }}}>
                     <div style={{display: "flex", flexDirection: "column"}}>
                         <div style={{display: "flex", flexDirection: "row"}}>
-                            { props.config.persona !== null && <Persona title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} hidePersonaDetails={true} size={PersonaSize.size32}></Persona> }
+                            { props.config.persona !== null 
+                                ? <Persona title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} size={PersonaSize.size32}></Persona> 
+                                : headerData
+                            }
                             <div style={{ marginLeft: "auto" }}>
                                 { props.config.notificationLookup && props.config.subscriptionLookup && 
                                     <>
@@ -435,9 +441,7 @@ const TileRender = (props: TileProps) => {
                                 />
                             </div>
                         </div>
-                        <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
-                            { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }
-                        </div>
+                        { props.config.persona !== null && headerData }
                     </div>
                 </Card.Section>
                 <Card.Section styles={{ root: { padding: "10px" }}}>
