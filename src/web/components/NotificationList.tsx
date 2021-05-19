@@ -10,6 +10,7 @@ import { useConfigState } from "../domain/ConfigState";
 
 import { Card, ICardTokens, ICardSectionStyles, ICardSectionTokens } from '@uifabric/react-cards';
 import { PrimaryButton, IconButton } from "@fluentui/react/lib/Button";
+import { getSplitBorderButtonStyle, getSplitBorderContainerStyle } from "../domain/Internationalization";
 
 interface NotificationListProps {
 }
@@ -57,11 +58,14 @@ export const NotificationList = (props: NotificationListProps) => {
     Xrm.Navigation.openForm({ entityName: eventRecord.LogicalName, entityId: eventRecord.Id, openInNewWindow: true });
   };
 
+  const borderStyle = getSplitBorderContainerStyle(appState);
+  const borderButtonStyle = getSplitBorderButtonStyle(appState);
+
   return (
-      <div style={{ position: "relative", width: "100%", height: "100%" }}>
-        <IconButton title="Close" iconProps={{iconName: "ChromeClose"}} onClick={closeSideBySide} style={{ color: "white", backgroundColor: "#045999", position: "absolute", zIndex: 1, top: "calc(50% - 40px)", left: "-18px" }}></IconButton>
-        <IconButton title="Mark as read and close" iconProps={{iconName: "Hide3"}}  onClick={clearAndRefresh} style={{ color: "white", backgroundColor: "#045999", position: "absolute", zIndex: 1, top: "50%", left: "-18px" }}></IconButton>
-        <IconButton title="Open in new window" iconProps={{iconName: "OpenInNewWindow"}}  onClick={openInNewTab} style={{ color: "white", backgroundColor: "#045999", position: "absolute", zIndex: 1, top: "calc(50% + 40px)", left: "-18px" }}></IconButton>
+      <div style={{ ...borderStyle, position: "relative", width: "100%", height: "100%" }}>
+        <IconButton title="Close" iconProps={{iconName: "ChromeClose"}} onClick={closeSideBySide} style={{ ...borderButtonStyle, color: "white", backgroundColor: "#045999", position: "absolute", zIndex: 1, top: "calc(50% - 40px)", left: "-18px" }}></IconButton>
+        <IconButton title="Mark as read and close" iconProps={{iconName: "Hide3"}}  onClick={clearAndRefresh} style={{ ...borderButtonStyle, color: "white", backgroundColor: "#045999", position: "absolute", zIndex: 1, top: "50%", left: "-18px" }}></IconButton>
+        <IconButton title="Open in new window" iconProps={{iconName: "OpenInNewWindow"}}  onClick={openInNewTab} style={{ ...borderButtonStyle, color: "white", backgroundColor: "#045999", position: "absolute", zIndex: 1, top: "calc(50% + 40px)", left: "-18px" }}></IconButton>
         { eventRecord &&
           <div>
             <Card tokens={{childrenGap: "5px"}} styles={{ root: { maxWidth: "auto", minWidth: "auto", margin: "5px", backgroundColor: "#f8f9fa" }}}>
