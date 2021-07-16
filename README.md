@@ -17,8 +17,12 @@ Features so far:
 - Custom Buttons and Custom Forms on state transition (via custom script support)
 - Search in data, highlighting and filtering
 - Support for subscriptions and notifications to records, so that you can subscribe to record changes and see them
+- Global Notifications when records that you subscribed to changed
+- Email Notifications when you subscribed with email notifications turned on
 - Custom Dialogs, for allowing to also resolve cases, win opportunities etc from the board
 - Works on entity lists as well as on form subgrids
+- Custom Styling by Style Sheets or JS callbacks
+- Virtual Entities can be used as well
 - Columns that contain html (such as email descriptions) are converted to plain text
 
 Todos:
