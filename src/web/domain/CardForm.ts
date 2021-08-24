@@ -16,10 +16,11 @@ export interface CardSegment {
     rows: Array<CardRow>;
 }
 
-interface ParsedCard {
+export interface ParsedCard {
     header: CardSegment;
     body: CardSegment;
     footer: CardSegment;
+    order: number;
 }
 
 export interface CardForm {
@@ -66,9 +67,12 @@ export const parseCardForm = (form: CardForm): ParsedCard => {
     const body = sections.find(s => s.getAttribute("name") === "CardDetails");
     const footer = sections.find(s => s.getAttribute("name") === "CardFooter");
 
+    const order = xml.documentElement.getElementsByTagName("DisplayConditions")[0]?.getAttribute("Order");
+
     return {
         header: parseSegment(header),
         body: parseSegment(body),
-        footer: parseSegment(footer)
+        footer: parseSegment(footer),
+        order: order != null ? parseInt(order) : 0
     };
 };

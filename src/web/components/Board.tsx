@@ -6,7 +6,7 @@ import { formatGuid } from "../domain/GuidFormatter";
 import { Lane } from "./Lane";
 import { Metadata, Attribute, Option } from "../domain/Metadata";
 import { SavedQuery } from "../domain/SavedQuery";
-import { CardForm, parseCardForm } from "../domain/CardForm";
+import { CardForm, parseCardForm, ParsedCard } from "../domain/CardForm";
 import { fetchData, refresh, fetchSubscriptions, fetchNotifications } from "../domain/fetchData";
 import { Tile } from "./Tile";
 import { DndContainer } from "./DndContainer";
@@ -237,17 +237,20 @@ export const Board = () => {
       actionDispatch({ type: "setProgressText", payload: "Fetching forms" });
 
       const { value: forms} = await fetchForms(configState.config.primaryEntity.logicalName);
-      const processedForms = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
+      const processedForms: Array<CardForm> = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
+      processedForms.sort((a, b) => a.parsed.order - b.parsed.order);
       setCardForms(processedForms);
 
       const { value: notificationForms } = await fetchForms("oss_notification");
-      const processedNotificationForms = notificationForms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
+      const processedNotificationForms: Array<CardForm> = notificationForms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
+      processedNotificationForms.sort((a, b) => a.parsed.order - b.parsed.order);
       configDispatch({ type: "setNotificationForm", payload: processedNotificationForms[0] });
 
       let defaultSecondaryForm;
       if (configState.config.secondaryEntity) {
         const { value: forms} = await fetchForms(configState.config.secondaryEntity.logicalName);
-        const processedSecondaryForms = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
+        const processedSecondaryForms: Array<CardForm> = forms.map((f: any) => ({ ...f, parsed: parseCardForm(f) }));
+        processedSecondaryForms.sort((a, b) => a.parsed.order - b.parsed.order);
         setSecondaryCardForms(processedSecondaryForms);
 
         defaultSecondaryForm = processedSecondaryForms[0];
