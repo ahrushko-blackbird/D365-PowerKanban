@@ -18,9 +18,13 @@ import { Spinner } from "@fluentui/react/lib/Spinner";
 import { PrimaryButton, CommandBarButton, IButtonStyles, IconButton, DefaultButton } from "@fluentui/react/lib/Button";
 import { Dropdown, IDropdownOption, IDropdownStyles } from "@fluentui/react/lib/Dropdown";
 import { OverflowSet, IOverflowSetItemProps } from "@fluentui/react/lib/OverflowSet";
-import { IContextualMenuProps, IContextualMenuItem } from "@fluentui/react/lib/ContextualMenu";
+import { IContextualMenuProps, IContextualMenuItem, IContextualMenuListProps } from "@fluentui/react/lib/ContextualMenu";
 import { ICardStyles } from '@uifabric/react-cards';
 import { BoardLane } from "../domain/BoardLane";
+import { RecordFilter } from "../domain/RecordFilter";
+import { IRenderFunction } from "@fluentui/react/lib/Utilities";
+import { Pivot, PivotItem } from "@fluentui/react/lib/Pivot";
+import { Stack, StackItem } from "@fluentui/react/lib/Stack";
 
 const determineAttributeUrl = (attribute: Attribute) => {
   if (attribute.AttributeType === "Picklist") {
@@ -59,6 +63,9 @@ export const Board = () => {
   const [ showNotificationRecordsOnly, setShowNotificationRecordsOnly ] = React.useState(false);
   const [ error, setError ] = React.useState(undefined);
   const [ customStyle, setCustomStyle ] = React.useState(undefined);
+
+  const [ primaryFilters, setPrimaryFilters ] = React.useState([] as Array<RecordFilter>);
+  const [ secondaryFilters, setSecondaryFilters ] = React.useState([] as Array<RecordFilter>);
 
   const isFirstRun = React.useRef(true);
 
@@ -566,6 +573,51 @@ export const Board = () => {
   let primaryStateFilter = renderStateFilter(configState?.separatorMetadata, stateFilters, configState?.config?.primaryEntity, setStateFilter);
   let secondaryStateFilter = renderStateFilter(configState?.secondarySeparatorMetadata, secondaryStateFilters, configState?.config?.secondaryEntity, setSecondaryStateFilter);
 
+  const items: IContextualMenuItem[] = [
+    { key: 'clearPrimary', text: 'Clear Primary', onClick: () => setPrimaryFilters([]) },
+    { key: 'clearSecondary', text: 'Clear Secondary', onClick: () => setSecondaryFilters([]) },
+    { key: 'clearAll', text: 'Clear All', onClick: () => { setPrimaryFilters([]); setSecondaryFilters([]); } }
+  ];
+
+  const renderMenuList = React.useCallback(
+    (menuListProps: IContextualMenuListProps, defaultRender: IRenderFunction<IContextualMenuListProps>) => {
+      return (
+        <div>
+          <div style={{ borderBottom: '1px solid #ccc' }}>
+            <Pivot>
+              { actionState?.selectedForm?.parsed &&
+                <PivotItem headerText="Primary Filters">
+                  <Stack>
+                    { actionState.selectedForm.parsed.body }
+                  </Stack>
+                </PivotItem>
+              }
+              { actionState?.selectedSecondaryForm?.parsed &&
+                <PivotItem headerText="Secondary Filters">
+                  <Stack>
+                    
+                  </Stack>
+                </PivotItem>
+              }
+            </Pivot>
+          </div>
+          {defaultRender(menuListProps)}
+        </div>
+      );
+    },
+    [primaryFilters, secondaryFilters],
+  );
+
+  const menuProps = React.useMemo(
+    () => ({
+      onRenderMenuList: renderMenuList,
+      title: 'Actions',
+      shouldFocusOnMount: true,
+      items
+    }),
+    [primaryFilters, secondaryFilters, renderMenuList],
+  );
+
   const navItems: Array<IOverflowSetItemProps> = [
     {
       key: 'configSelector',
@@ -624,6 +676,10 @@ export const Board = () => {
       }
     : null
     ),
+    {
+      key: 'filters',
+      onRender: () => <IconButton iconProps={{ iconName: (primaryFilters.some(f => f.selected) || secondaryFilters.some(f => f.selected)) ? "FilterSolid" : "Filter" }} styles={navItemStyles} menuProps={menuProps}></IconButton>
+    },
     {
       key: 'primaryStatusFilter',
       onRender: () =>  <DefaultButton styles={navItemStyles} id="stateFilterSelector" text="Primary Lane Filter" menuProps={primaryStateFilter} />
