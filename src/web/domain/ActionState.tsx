@@ -16,7 +16,8 @@ type Action = { type: "setSelectedRecord", payload: Xrm.LookupValue }
     | { type: "setWorkIndicator", payload: boolean}
     | { type: "setSelectedRecordDisplayType", payload: DisplayType }
     | { type: "setFlyOutForm", payload: FlyOutForm }
-    | { type: "setConfigSelectorDisplayState", payload: boolean };
+    | { type: "setConfigSelectorDisplayState", payload: boolean }
+    | { type: "setSelectedRecords", payload: {[key: string]: boolean} };
 
 export type ActionDispatch = (action: Action) => void;
 
@@ -32,6 +33,7 @@ export type ActionStateProps = {
     selectedRecordDisplayType?: DisplayType;
     flyOutForm?: FlyOutForm;
     configSelectorDisplayState?: boolean;
+    selectedRecords?: {[key: string]: boolean};
 };
 
 type ActionContextProps = {
@@ -54,6 +56,9 @@ function stateReducer(state: ActionStateProps, action: Action): ActionStateProps
     switch (action.type) {
         case "setSelectedRecord": {
             return { ...state, selectedRecord: action.payload };
+        }
+        case "setSelectedRecords": {
+            return { ...state, selectedRecords: { ...state.selectedRecords, ...action.payload } };
         }
         case "setSelectedForm": {
             return { ...state, selectedForm: action.payload };

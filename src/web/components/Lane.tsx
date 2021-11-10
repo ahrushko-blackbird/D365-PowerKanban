@@ -26,6 +26,7 @@ interface LaneProps {
     subscriptions: {[key: string]: Array<Subscription>};
     isSecondaryLane?: boolean;
     openRecord: (reference: Xrm.LookupValue) => void;
+    selectedRecords?: {[key: string]: boolean};
 }
 
 const LaneRender = (props: LaneProps) => {
@@ -72,7 +73,9 @@ const LaneRender = (props: LaneProps) => {
       data={d}
       config={props.config}
       separatorMetadata={props.separatorMetadata}
-      openRecord={props.openRecord} />
+      openRecord={props.openRecord}
+      isSecondary={props.isSecondaryLane}
+      isSelected={props.selectedRecords && props.selectedRecords[d[props.metadata.PrimaryIdAttribute]]} />
     );
 
     return (
@@ -119,6 +122,10 @@ export const Lane = React.memo(LaneRender, (a, b) => {
 
   if (a.lane.data.length != b.lane.data.length) {
       return false;
+  }
+
+  if (a.selectedRecords != b.selectedRecords) {
+    return false;
   }
 
   return true;

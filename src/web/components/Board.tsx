@@ -73,6 +73,22 @@ export const Board = () => {
     throw error;
   }
 
+  React.useEffect(() => {
+    // If selectedRecords is null no selection was yet made
+    if (!actionState.selectedRecords) {
+      return;
+    }
+
+    const selectedRecords = Object.keys(actionState.selectedRecords).reduce((all, cur) => actionState.selectedRecords[cur] ? [...all, cur] : all, []);
+
+    if (selectedRecords.length) {
+      appState.pcfContext.parameters.primaryDataSet.setSelectedRecordIds(selectedRecords);
+    }
+    else {
+      appState.pcfContext.parameters.primaryDataSet.clearSelectedRecordIds();
+    }
+  }, [ actionState.selectedRecords ]);
+
   const openRecord = React.useCallback((reference: Xrm.LookupValue) => {
     appState.pcfContext.parameters.primaryDataSet.openDatasetItem(reference as any);
   }, []);
@@ -475,10 +491,11 @@ export const Board = () => {
         separatorMetadata={configState.separatorMetadata}
         preventDrag={true}
         secondaryData={secondaryData}
-        openRecord={openRecord} />
+        openRecord={openRecord}
+        isSelected={actionState.selectedRecords && actionState.selectedRecords[d[configState.metadata.PrimaryIdAttribute]]} />
       );
     })), []);
-  }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.secondaryData, stateFilters, secondaryStateFilters, appliedSearchText, appState.notifications, appState.subscriptions, actionState.selectedSecondaryForm, configState.configId]);
+  }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.secondaryData, stateFilters, secondaryStateFilters, appliedSearchText, appState.notifications, appState.subscriptions, actionState.selectedSecondaryForm, actionState.selectedRecords, configState.configId]);
 
   const simpleData = React.useMemo(() => {
     return appState.boardData && appState.boardData
@@ -496,8 +513,9 @@ export const Board = () => {
       config={configState.config.primaryEntity}
       separatorMetadata={configState.separatorMetadata}
       openRecord={openRecord}
+      selectedRecords={actionState.selectedRecords}
       lane={{...d, data: d.data.filter(r => displayState === "simple" || appState.secondaryData && appState.secondaryData.every(t => t.data.every(tt => tt[`_${configState.config.secondaryEntity.parentLookup}_value`] !== r[configState.metadata.PrimaryIdAttribute])))}} />);
-  }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.subscriptions, stateFilters, appState.secondaryData, appliedSearchText, appState.notifications, configState.configId]);
+  }, [displayState, showNotificationRecordsOnly, appState.boardData, appState.subscriptions, stateFilters, appState.secondaryData, appliedSearchText, appState.notifications, configState.configId, actionState.selectedRecords]);
 
   const currentNotifications = React.useMemo(() => {
     if (!configState.config) {
@@ -605,7 +623,7 @@ export const Board = () => {
         </div>
       );
     },
-    [primaryFilters, secondaryFilters],
+    [primaryFilters, secondaryFilters, actionState?.selectedForm, actionState?.selectedSecondaryForm],
   );
 
   const menuProps = React.useMemo(
