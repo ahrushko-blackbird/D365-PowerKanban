@@ -41,6 +41,8 @@ interface TileProps {
     refresh: () => Promise<void>;
     preventDrag?: boolean;
     openRecord: (reference: Xrm.LookupValue) => void;
+    isSelected: boolean;
+    isSecondary?: boolean;
 }
 
 const TileRender = (props: TileProps) => {
@@ -143,7 +145,7 @@ const TileRender = (props: TileProps) => {
                     }
                 } catch (ex) {
                     actionDispatch({ type: "setWorkIndicator", payload: false });
-                    Xrm.Navigation.openAlertDialog({ text: ex.message, title: "An error occured" });
+                    Xrm.Navigation.openAlertDialog({ text: (ex as any).message, title: "An error occured" });
                 }
             };
 
@@ -408,12 +410,12 @@ const TileRender = (props: TileProps) => {
     
     return (
         <div ref={ props.preventDrag ? stub : drag}>
-            <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: "1px", borderColor: "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle}}}>
+            <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: props.isSelected ? "3px" : "1px", borderColor: props.isSelected ? "lightblue" : "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle}}}>
                 <Card.Section styles={{root: { padding: "10px", borderBottom: "1px solid rgba(0,0,0,.125)" }}}>
                     <div style={{display: "flex", flexDirection: "column"}}>
                         <div style={{display: "flex", flexDirection: "row"}}>
                             { props.config.persona !== null 
-                                ? <Persona title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} size={PersonaSize.size32}></Persona> 
+                                ? <Persona onClick={() => !props.isSecondary && actionDispatch({ type: "setSelectedRecords", payload: { [props.data[props.metadata.PrimaryIdAttribute]]: !props.isSelected } })} title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} size={PersonaSize.size32}></Persona> 
                                 : headerData
                             }
                             <div style={{ marginLeft: "auto" }}>
@@ -536,6 +538,10 @@ export const Tile = React.memo(TileRender, (a, b) => {
     }
 
     if ((a.subscriptions || []).length != (b.subscriptions || []).length) {
+        return false;
+    }
+
+    if (a.isSelected != b.isSelected) {
         return false;
     }
 
