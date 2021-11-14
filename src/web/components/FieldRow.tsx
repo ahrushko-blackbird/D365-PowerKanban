@@ -15,8 +15,10 @@ interface FieldRowProps {
 }
 
 const FieldRowRender = (props: FieldRowProps) => {
-    const openRecord = (event: any) => {
+    const openRecord = (event: React.MouseEvent<HTMLElement | HTMLAnchorElement | HTMLButtonElement, MouseEvent>) => {
+        event.stopPropagation();
         const [entity, id] = event.currentTarget.id.split(".");
+
         Xrm.Navigation.openForm({ entityName: entity, entityId: id, openInNewWindow: true });
     };
 
@@ -30,8 +32,8 @@ const FieldRowRender = (props: FieldRowProps) => {
         const plainText = toPlainText(text.toString());
 
         const style: React.CSSProperties = props.type === "body"
-            ? { wordBreak: "break-word", whiteSpace: "pre-wrap" }
-            : { overflow: "hidden", textOverflow: "ellipsis" };
+            ? { wordBreak: "break-word", whiteSpace: "pre-wrap", color: "inherit" }
+            : { overflow: "hidden", textOverflow: "ellipsis", color: "inherit" };
 
         const className= `d365-powerkanban-field d365-powerkanban-field-${entity} d365-powerkanban-field-${entity}-${fieldName}`;
 
