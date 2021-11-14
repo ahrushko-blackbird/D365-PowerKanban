@@ -7,6 +7,7 @@ If any issues occur, close your browser and reopen it again to clear the session
 
 Features so far:
 - Supports option sets, status codes and boolean attributes as swimlane sources
+- Records can be selected and deselected by clicking on the tiles
 - Color schemes are taken from option set color values
 - Primary and Secondary entities can be configured, so that you can show accounts and their child cases in one kanban board (choose view Advanced)
 - Swimlanes with Drag and Drop functionality (allowed transitions can be defined for statuscode attributes inside their respective state transitions, or via custom script hook)
