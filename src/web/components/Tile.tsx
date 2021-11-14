@@ -20,6 +20,7 @@ import { Card, ICardStyles } from '@uifabric/react-cards';
 import { IconButton } from "@fluentui/react/lib/Button";
 import { Persona, PersonaSize } from "@fluentui/react/lib/Persona";
 import { FetchUserAvatar } from "../domain/FetchUserInfo";
+import { IContextualMenuItem, IContextualMenuProps } from "@fluentui/react/lib/ContextualMenu";
 
 interface TileProps {
     borderColor: string;
@@ -169,6 +170,14 @@ const TileRender = (props: TileProps) => {
         actionDispatch({ type: "setSelectedRecord", payload: { entityType: props.metadata.LogicalName, id: props.data[props.metadata?.PrimaryIdAttribute] } });
     };
 
+    const showNotificationsQuick = (ev?: React.MouseEvent<any>) => {
+        if (ev) {
+            ev.stopPropagation();
+        }
+
+        showNotifications();
+    };
+
     const openInNewTab = () => {
         Xrm.Navigation.openForm({ entityName: props.metadata.LogicalName, entityId: props.data[props.metadata?.PrimaryIdAttribute], openInNewWindow: true });
     };
@@ -180,7 +189,11 @@ const TileRender = (props: TileProps) => {
         });
     };
 
-    const quickOpen = () => {
+    const quickOpen = (ev?: React.MouseEvent<any>) => {
+        if (ev) {
+            ev.stopPropagation();
+        }
+
         const handler = (props.config.defaultOpenHandler || "").toLowerCase();
 
         switch(handler) {
@@ -195,11 +208,7 @@ const TileRender = (props: TileProps) => {
         }
     };
 
-    const openInModal = (ev?: React.MouseEvent<HTMLElement, MouseEvent> | React.KeyboardEvent<HTMLElement>) => {
-        if (ev) {
-            ev.stopPropagation();
-        }
-
+    const openInModal = () => {
         const input : Xrm.Navigation.PageInputEntityRecord = {
 			pageType: "entityrecord",
             entityName: props.metadata.LogicalName,
@@ -251,39 +260,47 @@ const TileRender = (props: TileProps) => {
         actionDispatch({ type: "setWorkIndicator", payload: false });
     };
 
-    const subscribe = () => createSubscription(false);
-    const subscribeWithEmail = () => createSubscription(true, props.config.emailNotificationsSender ? JSON.stringify(props.config.emailNotificationsSender) : undefined);
+    const subscribe = (): any => createSubscription(false);
+    const subscribeWithEmail = (): any => createSubscription(true, props.config.emailNotificationsSender ? JSON.stringify(props.config.emailNotificationsSender) : undefined);
 
-    const unsubscribe = async () => {
-        actionDispatch({ type: "setWorkIndicator", payload: true });
-        const subscriptionsToDelete = props.subscriptions.filter(s => s[`_${props.config.subscriptionLookup}_value`] === props.data[props.metadata.PrimaryIdAttribute]);
+    const unsubscribe = () => {
+        const asyncAction = async () => {
+            actionDispatch({ type: "setWorkIndicator", payload: true });
+            const subscriptionsToDelete = props.subscriptions.filter(s => s[`_${props.config.subscriptionLookup}_value`] === props.data[props.metadata.PrimaryIdAttribute]);
 
-        await Promise.all(subscriptionsToDelete.map(s =>
-            WebApiClient.Delete({
-                entityName: "oss_subscription",
-                entityId: s.oss_subscriptionid
-            })
-        ));
+            await Promise.all(subscriptionsToDelete.map(s =>
+                WebApiClient.Delete({
+                    entityName: "oss_subscription",
+                    entityId: s.oss_subscriptionid
+                })
+            ));
 
-        const subscriptions = await fetchSubscriptions(configState.config);
-        appDispatch({ type: "setSubscriptions", payload: subscriptions });
-        actionDispatch({ type: "setWorkIndicator", payload: false });
+            const subscriptions = await fetchSubscriptions(configState.config);
+            appDispatch({ type: "setSubscriptions", payload: subscriptions });
+            actionDispatch({ type: "setWorkIndicator", payload: false });
+        };
+        
+        asyncAction();
     };
 
-    const clearNotifications = async () => {
-        actionDispatch({ type: "setWorkIndicator", payload: true });
-        const notificationsToDelete = props.notifications;
+    const clearNotifications = () => {
+        const asyncAction = async () => {
+            actionDispatch({ type: "setWorkIndicator", payload: true });
+            const notificationsToDelete = props.notifications;
 
-        await Promise.all(notificationsToDelete.map(s =>
-            WebApiClient.Delete({
-                entityName: "oss_notification",
-                entityId: s.oss_notificationid
-            })
-        ));
+            await Promise.all(notificationsToDelete.map(s =>
+                WebApiClient.Delete({
+                    entityName: "oss_notification",
+                    entityId: s.oss_notificationid
+                })
+            ));
 
-        const notifications = await fetchNotifications(configState.config);
-        appDispatch({ type: "setNotifications", payload: notifications });
-        actionDispatch({ type: "setWorkIndicator", payload: false });
+            const notifications = await fetchNotifications(configState.config);
+            appDispatch({ type: "setNotifications", payload: notifications });
+            actionDispatch({ type: "setWorkIndicator", payload: false });
+        };
+
+        asyncAction();
     };
 
     const initCallBack = (identifier: string) => {
@@ -310,7 +327,7 @@ const TileRender = (props: TileProps) => {
         },
       };
 
-    const menuProps = {
+    const menuProps: IContextualMenuProps = {
         items: [
             {
                 key: 'open',
@@ -349,7 +366,7 @@ const TileRender = (props: TileProps) => {
         ],
     };
 
-    const subscriptionMenuProps = {
+    const subscriptionMenuProps: IContextualMenuProps = {
         items: [
             {
                 key: 'subscribe',
@@ -407,15 +424,25 @@ const TileRender = (props: TileProps) => {
     const headerData = <div style={{display: "flex", flex: "1", overflow: "auto", flexDirection: "column", color: "#666666" }}>
           { props.cardForm.parsed.header.rows.map((r, i) => <div key={`headerRow_${props.data[props.metadata.PrimaryIdAttribute]}_${i}`} style={{ flex: "1" }}><FieldRow searchString={props.searchText} type="header" metadata={props.metadata} data={props.data} cells={r.cells} /></div>) }                  
     </div>;
+
+    const selectRecord = (ev?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+        ev.stopPropagation();
+
+        if(props.isSecondary) {
+            return;
+        }
+
+        actionDispatch({ type: "setSelectedRecords", payload: { [props.data[props.metadata.PrimaryIdAttribute]]: !props.isSelected } });
+    };
     
     return (
-        <div ref={ props.preventDrag ? stub : drag}>
-            <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: props.isSelected ? "3px" : "1px", borderColor: props.isSelected ? "lightblue" : "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle}}}>
+        <div onClick={selectRecord} ref={ props.preventDrag ? stub : drag}>
+            <Card tokens={{ childrenGap: "5px" }} styles={{ root: { maxWidth: "auto", backgroundColor: "#fff", opacity, borderStyle: "solid", borderWidth: "1px", borderColor: "#d8d8d8", borderLeftColor: props.borderColor, borderLeftWidth: "3px", ...props.style, ...overriddenStyle, ...(props.isSelected ? { boxShadow: "0 0 1em deepskyblue" } : {}) }}}>
                 <Card.Section styles={{root: { padding: "10px", borderBottom: "1px solid rgba(0,0,0,.125)" }}}>
                     <div style={{display: "flex", flexDirection: "column"}}>
                         <div style={{display: "flex", flexDirection: "row"}}>
                             { props.config.persona !== null 
-                                ? <Persona onClick={() => !props.isSecondary && actionDispatch({ type: "setSelectedRecords", payload: { [props.data[props.metadata.PrimaryIdAttribute]]: !props.isSelected } })} title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} size={PersonaSize.size32}></Persona> 
+                                ? <Persona title={personaTitle} imageUrl={personaUrl} imageAlt={personaTitle} styles={{root: { marginRight: "5px" } }} text={personaTitle} size={PersonaSize.size32}></Persona> 
                                 : headerData
                             }
                             <div style={{ marginLeft: "auto" }}>
@@ -428,7 +455,7 @@ const TileRender = (props: TileProps) => {
                                             split
                                             aria-roledescription="split button"
                                             menuProps={{ items: subscriptionMenuProps.items.filter(m => !!m) }}
-                                            onClick={showNotifications}
+                                            onClick={showNotificationsQuick}
                                         />
                                     </>
                                 }
