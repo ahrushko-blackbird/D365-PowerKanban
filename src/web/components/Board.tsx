@@ -597,6 +597,44 @@ export const Board = () => {
     { key: 'clearAll', text: 'Clear All', onClick: () => { setPrimaryFilters([]); setSecondaryFilters([]); } }
   ];
 
+  React.useEffect(() => {
+    if (!actionState.selectedForm?.parsed) {
+      setPrimaryFilters([]);
+      return;
+    }
+    
+    const fields = [
+      ...actionState.selectedForm.parsed.header.rows.reduce((all, cur) => [ ...all, ...cur.cells.map(c => c.field )], [] as Array<string>),
+      ...actionState.selectedForm.parsed.body.rows.reduce((all, cur) => [ ...all, ...cur.cells.map(c => c.field )], [] as Array<string>),
+      ...actionState.selectedForm.parsed.footer.rows.reduce((all, cur) => [ ...all, ...cur.cells.map(c => c.field )], [] as Array<string>)
+    ];
+
+    setPrimaryFilters(fields.map(f => ({
+      logicalName: f,
+      displayName: configState.metadata.Attributes.find(a => a.LogicalName === f)?.DisplayName.UserLocalizedLabel.Label,
+      operator: "contains"
+    })));
+  }, [ appState.boardData ]);
+
+  React.useEffect(() => {
+    if (!actionState.selectedSecondaryForm?.parsed) {
+      setSecondaryFilters([]);
+      return;
+    }
+    
+    const fields = [
+      ...actionState.selectedSecondaryForm.parsed.header.rows.reduce((all, cur) => [ ...all, ...cur.cells.map(c => c.field )], [] as Array<string>),
+      ...actionState.selectedSecondaryForm.parsed.body.rows.reduce((all, cur) => [ ...all, ...cur.cells.map(c => c.field )], [] as Array<string>),
+      ...actionState.selectedSecondaryForm.parsed.footer.rows.reduce((all, cur) => [ ...all, ...cur.cells.map(c => c.field )], [] as Array<string>)
+    ];
+
+    setSecondaryFilters(fields.map(f => ({
+      logicalName: f,
+      displayName: configState.secondaryMetadata[configState.config.secondaryEntity.logicalName].Attributes.find(a => a.LogicalName === f)?.DisplayName.UserLocalizedLabel.Label,
+      operator: "contains"
+    })));
+  }, [ appState.secondaryData ]);
+
   const renderMenuList = React.useCallback(
     (menuListProps: IContextualMenuListProps, defaultRender: IRenderFunction<IContextualMenuListProps>) => {
       return (
@@ -606,14 +644,14 @@ export const Board = () => {
               { actionState?.selectedForm?.parsed &&
                 <PivotItem headerText="Primary Filters">
                   <Stack>
-                    { actionState.selectedForm.parsed.body }
+                    { primaryFilters.map(f => <Dropdown label={f.displayName} options={[]} />) }
                   </Stack>
                 </PivotItem>
               }
               { actionState?.selectedSecondaryForm?.parsed &&
                 <PivotItem headerText="Secondary Filters">
                   <Stack>
-                    
+                  { secondaryFilters.map(f => <Dropdown label={f.displayName} options={[]} />) }
                   </Stack>
                 </PivotItem>
               }

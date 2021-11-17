@@ -1,4 +1,6 @@
 export interface RecordFilter {
-    selected: boolean;
-    
+    selected?: boolean;
+    logicalName?: string;
+    displayName?: string;
+    operator?: "equals" | "contains";
 }
