@@ -9,10 +9,16 @@ export interface CustomButton {
     callBack: string;
 }
 
-export interface SidePanel {
+export interface SidePanelBehavior {
     type: "information" | "droptarget" | "dropsource";
+}
+
+export interface SidePanelConfiguration {
+    behavior: SidePanelBehavior;
     entity: string;
     fetchXml: string;
+    uniqueName: string;
+    headerText: string;
 }
 
 export interface BoardEntity {
@@ -56,5 +62,5 @@ export interface BoardViewConfig {
     customStyleUrl: string;
     cachingEnabled: boolean;
     defaultDisplayState: DisplayState;
-    sidePanels?: Array<SidePanel>;
+    sidePanels?: Array<SidePanelConfiguration>;
 }

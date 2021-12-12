@@ -9,6 +9,7 @@ import { getSplitBorderButtonStyle, getSplitBorderContainerStyle } from "../doma
 import { Card, ICardTokens, ICardSectionStyles, ICardSectionTokens } from '@uifabric/react-cards';
 import { SidePanelTile } from "./SidePanelTile";
 import { SidePanel } from "./SidePanel";
+import { Pivot, PivotItem } from "@fluentui/react/lib/components/Pivot";
 
 interface FormProps {
 }
@@ -37,7 +38,11 @@ export const SidePanelHost = (props: FormProps) => {
       <div style={{ ...borderStyle, position: "relative", width: "100%", height: "100%" }}>
         <IconButton iconProps={{iconName: "ChromeClose"}} title="Close" onClick={closeSideBySide} style={{ ...borderButtonStyle, color: "white", backgroundColor: "#045999", position: "absolute", top: "calc(50% - 20px)", left: "-18px" }}></IconButton>
         <IconButton iconProps={{iconName: "Refresh"}} title="Close and refresh" onClick={closeAndRefresh} style={{ ...borderButtonStyle, color: "white", backgroundColor: "#045999", position: "absolute", top: "calc(50% +  20px)", left: "-18px" }}></IconButton>
-        <SidePanel />
+        <Pivot aria-label="Side Panels">
+          {
+            configState.config.sidePanels.map(p => <PivotItem headerText={p.headerText} key={p.uniqueName ?? p.headerText}><SidePanel sidePanel={p} /></PivotItem>)
+          }
+        </Pivot>
       </div>
   );
 };

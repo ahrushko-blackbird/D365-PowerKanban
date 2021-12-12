@@ -17,7 +17,6 @@ import { Icon } from "@fluentui/react/lib/Icon";
 
 interface SidePanelTileProps {
     data: Notification;
-    parent: Xrm.LookupValue;
     style?: React.CSSProperties;
 }
 
