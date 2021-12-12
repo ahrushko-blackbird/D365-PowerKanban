@@ -25,6 +25,7 @@ import { RecordFilter } from "../domain/RecordFilter";
 import { IRenderFunction } from "@fluentui/react/lib/Utilities";
 import { Pivot, PivotItem } from "@fluentui/react/lib/Pivot";
 import { Stack, StackItem } from "@fluentui/react/lib/Stack";
+import { config } from "bluebird";
 
 const determineAttributeUrl = (attribute: Attribute) => {
   if (attribute.AttributeType === "Picklist") {
@@ -635,6 +636,16 @@ export const Board = () => {
     })));
   }, [ appState.secondaryData ]);
 
+  const toggleGlobalDisplay = () => {
+    if (actionState.selectedRecordDisplayType === DisplayType.globalData) {
+      actionDispatch({ type: "setSelectedRecordDisplayType", payload: undefined });
+    }
+    else {
+      actionDispatch({ type: "setSelectedRecordDisplayType", payload: DisplayType.globalData });
+      actionDispatch({ type: "setSelectedRecord", payload: undefined });
+    }
+  };
+
   const renderMenuList = React.useCallback(
     (menuListProps: IContextualMenuListProps, defaultRender: IRenderFunction<IContextualMenuListProps>) => {
       return (
@@ -758,6 +769,13 @@ export const Board = () => {
       key: 'searchBox',
       onRender: () => <SearchBox styles={navItemStyles} placeholder="Search..." onClear={onEmptySearch} onSearch={onSearch} />
     },
+    (configState.config.sidePanels 
+      ? {
+        key: "globalDataToggle",
+        onRender: () => <IconButton onClick={toggleGlobalDisplay} iconProps={{ iconName: "" }} styles={navItemStyles} />
+      }
+      : null
+    ),
     {
       key: 'workIndicator',
       onRender: () => !!actionState.workIndicator && <Spinner styles={{root: { marginLeft: "auto" }}} label="Working..." ariaLive="assertive" labelPosition="right" />

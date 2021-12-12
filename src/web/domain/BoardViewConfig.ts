@@ -9,6 +9,12 @@ export interface CustomButton {
     callBack: string;
 }
 
+export interface SidePanel {
+    type: "information" | "droptarget" | "dropsource";
+    entity: string;
+    fetchXml: string;
+}
+
 export interface BoardEntity {
     logicalName: string;
     swimLaneSource: string;
@@ -50,4 +56,5 @@ export interface BoardViewConfig {
     customStyleUrl: string;
     cachingEnabled: boolean;
     defaultDisplayState: DisplayState;
+    sidePanels?: Array<SidePanel>;
 }

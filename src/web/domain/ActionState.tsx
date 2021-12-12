@@ -5,7 +5,8 @@ import { FlyOutForm } from "./FlyOutForm";
 
 export enum DisplayType {
     recordForm,
-    notifications
+    notifications,
+    globalData
 }
 
 type Action = { type: "setSelectedRecord", payload: Xrm.LookupValue }
